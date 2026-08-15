@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sde-routine-tracker"
+version = "0.1.0"
+description = "Login dashboard and Apple Calendar guide for the SDE-2/SDE-3 learning routine."
+requires-python = ">=3.9"
+dependencies = [
+    "fastapi>=0.110",
+    "uvicorn>=0.27",
+    "pyyaml>=6.0",
+]
+
+[project.scripts]
+tracker = "tracker.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["tracker*"]
+
+[tool.setuptools.package-data]
+tracker = ["static/*", "routine.json"]

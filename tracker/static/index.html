@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SDE Prep — Today</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <header class="top">
+        <div>
+          <p class="eyebrow">SDE-2 / SDE-3 routine</p>
+          <h1 id="clock-day">Loading…</h1>
+          <p class="phase" id="phase-line"></p>
+        </div>
+        <div class="clock-block">
+          <p id="clock-time">--:--</p>
+          <p id="clock-tz">Asia/Kolkata</p>
+        </div>
+      </header>
+
+      <section class="now-card" id="now-card">
+        <p class="eyebrow" id="now-kicker">Current block</p>
+        <h2 id="now-title">…</h2>
+        <p class="now-meta" id="now-meta"></p>
+        <div class="meter" aria-hidden="true"><span id="now-meter"></span></div>
+        <ul class="guidance" id="guidance"></ul>
+        <div class="now-actions">
+          <button type="button" class="primary" id="log-current">Log this block</button>
+          <button type="button" class="ghost" id="log-walk">Walk done</button>
+          <button type="button" class="ghost" id="log-reading">Reading done</button>
+        </div>
+      </section>
+
+      <section class="grid">
+        <article class="panel">
+          <h3>Today</h3>
+          <ol class="timeline" id="timeline"></ol>
+        </article>
+
+        <article class="panel">
+          <h3>Week</h3>
+          <div class="stats" id="stats"></div>
+          <p class="next-line" id="next-line"></p>
+        </article>
+      </section>
+
+      <section class="grid">
+        <article class="panel">
+          <h3>Log progress</h3>
+          <form id="log-form">
+            <div class="row">
+              <label>
+                Subject
+                <select name="subject" id="log-subject">
+                  <option value="dsa">DSA</option>
+                  <option value="lld">LLD</option>
+                  <option value="hld">HLD</option>
+                  <option value="ai">AI</option>
+                  <option value="reading">Reading</option>
+                  <option value="walk">Walk</option>
+                  <option value="review">Weekly review</option>
+                  <option value="other">Other</option>
+                </select>
+              </label>
+              <label>
+                Minutes
+                <input name="minutes" type="number" min="0" step="5" value="60" />
+              </label>
+              <label>
+                DSA problems
+                <input name="problems_count" type="number" min="0" step="1" value="0" />
+              </label>
+            </div>
+            <label>
+              Notes
+              <textarea name="notes" rows="3" placeholder="Problem names, patterns, what is still weak…"></textarea>
+            </label>
+            <button type="submit" class="primary">Save session</button>
+            <p class="form-status" id="log-status"></p>
+          </form>
+          <ul class="recent" id="recent"></ul>
+        </article>
+
+        <article class="panel">
+          <h3>Sunday review</h3>
+          <form id="review-form">
+            <label>DSA<textarea name="dsa" rows="2" placeholder="Problems solved, patterns learned, revisit list, timed performance"></textarea></label>
+            <label>LLD<textarea name="lld" rows="2" placeholder="Design completed, patterns, implementation, weak areas"></textarea></label>
+            <label>HLD<textarea name="hld" rows="2" placeholder="Systems designed, tradeoffs, failure scenarios"></textarea></label>
+            <label>AI<textarea name="ai" rows="2" placeholder="Topic, implementation, first-principles vs still unclear"></textarea></label>
+            <label>Personal<textarea name="personal" rows="2" placeholder="Sleep, walks, reading, study hours, energy"></textarea></label>
+            <button type="submit" class="primary">Save weekly review</button>
+            <p class="form-status" id="review-status"></p>
+          </form>
+        </article>
+      </section>
+
+      <section class="panel calendar-panel">
+        <div>
+          <h3>Apple Calendar</h3>
+          <p class="muted">Creates a dedicated “SDE Prep” calendar with recurring study, dinner, walk, and reading blocks. Work hours are left off so the calendar stays readable.</p>
+        </div>
+        <button type="button" class="primary" id="sync-calendar">Sync to Apple Calendar</button>
+        <p class="form-status" id="calendar-status"></p>
+      </section>
+    </div>
+    <script src="/static/app.js"></script>
+  </body>
+</html>

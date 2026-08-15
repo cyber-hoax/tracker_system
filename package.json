@@ -1,0 +1,44 @@
+{
+  "name": "sde-tracker",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -H 127.0.0.1 -p 8765",
+    "build": "next build",
+    "start": "next start -H 127.0.0.1 -p 8765",
+    "lint": "eslint",
+    "test": "vitest run",
+    "obsidian:import": "tsx src/lib/obsidian/cli.ts",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:seed": "tsx src/db/seed.ts",
+    "db:studio": "drizzle-kit studio",
+    "install-agent": "tsx scripts/install-agent.ts install",
+    "uninstall-agent": "tsx scripts/install-agent.ts uninstall"
+  },
+  "dependencies": {
+    "dotenv": "^17.4.2",
+    "drizzle-orm": "^0.44.7",
+    "gray-matter": "^4.0.3",
+    "leetcode-query": "^2.0.1",
+    "next": "16.3.1",
+    "postgres": "^3.4.9",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "react-force-graph-2d": "^1.29.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "drizzle-kit": "^0.31.10",
+    "eslint": "^9",
+    "eslint-config-next": "16.3.1",
+    "tailwindcss": "^4",
+    "tsx": "^4.23.12",
+    "typescript": "^5",
+    "vite-tsconfig-paths": "^6.1.1",
+    "vitest": "^4.1.10"
+  }
+}

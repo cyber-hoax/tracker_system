@@ -1,0 +1,193 @@
+{
+  "timezone": "Asia/Kolkata",
+  "calendar_name": "SDE Prep",
+  "goal": "SDE-2 / SDE-3 preparation with sustainable hours, protected sleep, daily walk, and daily reading.",
+  "non_negotiables": [
+    "Protect sleep. Do not routinely sacrifice sleep for study hours.",
+    "Do not force a 5 AM routine. Morning is maintenance, not technical study.",
+    "DSA should be consistent, not excessive. One serious problem plus review beats two rushed problems.",
+    "Use Thursday and weekends for deep work.",
+    "Keep the 20-minute walk.",
+    "Keep the 30-minute reading habit.",
+    "Protect free time.",
+    "Learn AI from fundamentals, not only API wrappers.",
+    "Connect HLD/LLD to production experience."
+  ],
+  "phases": [
+    {
+      "id": "months_1_2",
+      "name": "Months 1–2 — DSA Heavy",
+      "start_month": 1,
+      "end_month": 2,
+      "mix": "DSA 60% / LLD 15% / HLD 15% / AI 10%",
+      "dsa_target": "100–120 problems",
+      "topics": ["Arrays", "Strings", "Hashing", "Two Pointers", "Sliding Window", "Binary Search", "Linked Lists", "Stack / Queue", "Trees", "Heap", "Graphs"]
+    },
+    {
+      "id": "months_3_4",
+      "name": "Months 3–4 — Balanced Engineering Prep",
+      "start_month": 3,
+      "end_month": 4,
+      "mix": "DSA 40% / LLD 25% / HLD 25% / AI 10%",
+      "dsa_target": "another 80–100 problems",
+      "topics": ["LLD implementations", "Distributed systems", "Kafka", "Redis", "Database scaling", "Caching", "Concurrency", "System design"]
+    },
+    {
+      "id": "months_5_6",
+      "name": "Months 5–6 — Interview Readiness",
+      "start_month": 5,
+      "end_month": 6,
+      "mix": "DSA 25–30% / LLD 20% / HLD 30–35% / AI 20%",
+      "dsa_target": "timed mocks, not new collection",
+      "topics": ["Timed DSA", "Mock interviews", "HLD mocks", "LLD mocks", "Project deep dives", "AI implementation", "Failure scenarios"]
+    }
+  ],
+  "dsa_explain_flow": [
+    "Brute force",
+    "Why it is too slow",
+    "Observation",
+    "Optimal approach",
+    "Time complexity",
+    "Space complexity",
+    "Edge cases"
+  ],
+  "weekly_hours": {
+    "dsa": "9–10",
+    "hld": "4–5",
+    "lld": "3–4",
+    "ai": "3–4",
+    "reading": "3.5"
+  },
+  "days": {
+    "mon": {
+      "label": "Monday",
+      "kind": "office",
+      "summary": "Work 9–7. Night: DSA, then LLD. Walk + book + sleep protected.",
+      "blocks": [
+        {"start": "07:30", "end": "08:15", "title": "Morning routine", "kind": "maintenance", "subject": "morning", "guide": "Water, wash, sunlight, light movement, shower. No DSA, HLD, or AI in the morning."},
+        {"start": "08:15", "end": "09:00", "title": "Commute / buffer", "kind": "buffer", "subject": "none", "guide": "Keep the morning predictable. Do not start technical study."},
+        {"start": "09:00", "end": "19:00", "title": "Work", "kind": "work", "subject": "none", "guide": "Office hours. The learning day starts after decompression at 7:00 PM."},
+        {"start": "19:00", "end": "19:30", "title": "Decompression", "kind": "break", "subject": "none", "guide": "Travel, tea, short walk, personal reset. Do not immediately start studying."},
+        {"start": "19:30", "end": "21:00", "title": "DSA", "kind": "study", "subject": "dsa", "guide": "7:30–7:40 review yesterday. 7:40–8:30 one serious new problem. 8:30–9:00 second problem, redo, or notes. Prefer one serious problem plus review."},
+        {"start": "21:00", "end": "21:30", "title": "Break", "kind": "break", "subject": "none", "guide": "No technical studying. Let the DSA session settle."},
+        {"start": "21:30", "end": "22:00", "title": "Dinner", "kind": "meal", "subject": "none", "guide": "Dinner can run later. If it shifts, shift the walk and the second study block with it — do not compress everything."},
+        {"start": "22:00", "end": "22:20", "title": "Walk", "kind": "walk", "subject": "walk", "guide": "20-minute walk. This is a non-negotiable transition into the second study session."},
+        {"start": "22:20", "end": "23:20", "title": "LLD", "kind": "study", "subject": "lld", "guide": "Monday secondary subject is LLD. Aim for a complete design slice: interfaces, SOLID, and why the design is extensible."},
+        {"start": "23:20", "end": "23:50", "title": "Reading", "kind": "reading", "subject": "reading", "guide": "Fixed 30-minute reading block. Do not convert this into another technical-study block."},
+        {"start": "23:50", "end": "00:15", "title": "Shutdown", "kind": "shutdown", "subject": "none", "guide": "Prepare tomorrow, set priorities, light reading or music. No work. Target sleep 11:45 PM–12:15 AM."}
+      ]
+    },
+    "tue": {
+      "label": "Tuesday",
+      "kind": "office",
+      "summary": "Work 9–7. Night: DSA, then HLD.",
+      "blocks": [
+        {"start": "07:30", "end": "08:15", "title": "Morning routine", "kind": "maintenance", "subject": "morning", "guide": "Water, wash, sunlight, light movement, shower. No technical study."},
+        {"start": "08:15", "end": "09:00", "title": "Commute / buffer", "kind": "buffer", "subject": "none", "guide": "Keep the morning predictable."},
+        {"start": "09:00", "end": "19:00", "title": "Work", "kind": "work", "subject": "none", "guide": "Office hours. Learning starts after 7:00 PM decompression."},
+        {"start": "19:00", "end": "19:30", "title": "Decompression", "kind": "break", "subject": "none", "guide": "Reset before DSA. Do not jump straight into a problem."},
+        {"start": "19:30", "end": "21:00", "title": "DSA", "kind": "study", "subject": "dsa", "guide": "Review yesterday, then one serious problem, then notes or a redo. Explain brute force → bottleneck → observation → optimal → complexity → edges."},
+        {"start": "21:00", "end": "21:30", "title": "Break", "kind": "break", "subject": "none", "guide": "No technical studying."},
+        {"start": "21:30", "end": "22:00", "title": "Dinner", "kind": "meal", "subject": "none", "guide": "If dinner is late, shift walk and HLD with it."},
+        {"start": "22:00", "end": "22:20", "title": "Walk", "kind": "walk", "subject": "walk", "guide": "20-minute walk before HLD."},
+        {"start": "22:20", "end": "23:20", "title": "HLD", "kind": "study", "subject": "hld", "guide": "Tuesday secondary subject is HLD. Go past Client → API → Service → DB. Ask: why this design instead of another?"},
+        {"start": "23:20", "end": "23:50", "title": "Reading", "kind": "reading", "subject": "reading", "guide": "30 minutes of reading. Keep it non-technical-study."},
+        {"start": "23:50", "end": "00:15", "title": "Shutdown", "kind": "shutdown", "subject": "none", "guide": "Prepare tomorrow. Protect sleep."}
+      ]
+    },
+    "wed": {
+      "label": "Wednesday",
+      "kind": "office",
+      "summary": "Work 9–7. Night: DSA, then AI internals.",
+      "blocks": [
+        {"start": "07:30", "end": "08:15", "title": "Morning routine", "kind": "maintenance", "subject": "morning", "guide": "Maintenance only. No AI study in the morning."},
+        {"start": "08:15", "end": "09:00", "title": "Commute / buffer", "kind": "buffer", "subject": "none", "guide": "Keep the morning predictable."},
+        {"start": "09:00", "end": "19:00", "title": "Work", "kind": "work", "subject": "none", "guide": "Office hours."},
+        {"start": "19:00", "end": "19:30", "title": "Decompression", "kind": "break", "subject": "none", "guide": "Reset before DSA."},
+        {"start": "19:30", "end": "21:00", "title": "DSA", "kind": "study", "subject": "dsa", "guide": "One serious problem plus review. Do not rush two problems."},
+        {"start": "21:00", "end": "21:30", "title": "Break", "kind": "break", "subject": "none", "guide": "No technical studying."},
+        {"start": "21:30", "end": "22:00", "title": "Dinner", "kind": "meal", "subject": "none", "guide": "Shift walk and AI if dinner runs late."},
+        {"start": "22:00", "end": "22:20", "title": "Walk", "kind": "walk", "subject": "walk", "guide": "20-minute walk."},
+        {"start": "22:20", "end": "23:20", "title": "AI", "kind": "study", "subject": "ai", "guide": "Wednesday secondary subject is AI. Study internals (tokenization, attention, logits, sampling) rather than only wrappers. Build while learning."},
+        {"start": "23:20", "end": "23:50", "title": "Reading", "kind": "reading", "subject": "reading", "guide": "30-minute reading block."},
+        {"start": "23:50", "end": "00:15", "title": "Shutdown", "kind": "shutdown", "subject": "none", "guide": "Prepare tomorrow. Protect sleep."}
+      ]
+    },
+    "thu": {
+      "label": "Thursday",
+      "kind": "deep_work",
+      "summary": "WFH. Work wraps ~5 PM. Highest-value weekday: DSA, a complete design, then AI.",
+      "blocks": [
+        {"start": "07:30", "end": "08:15", "title": "Morning routine", "kind": "maintenance", "subject": "morning", "guide": "Same morning maintenance. Do not add extra study just because you are at home."},
+        {"start": "08:15", "end": "09:00", "title": "Buffer", "kind": "buffer", "subject": "none", "guide": "Ease into the workday."},
+        {"start": "09:00", "end": "17:00", "title": "Work", "kind": "work", "subject": "none", "guide": "Work from home. Wrap around 5:00 PM."},
+        {"start": "17:00", "end": "17:30", "title": "Finish work / reset", "kind": "break", "subject": "none", "guide": "Close work cleanly. Do not immediately grind for five hours."},
+        {"start": "17:30", "end": "19:00", "title": "DSA", "kind": "study", "subject": "dsa", "guide": "Longer DSA block. Good day for a harder Medium or a full pattern review."},
+        {"start": "19:00", "end": "19:30", "title": "Break", "kind": "break", "subject": "none", "guide": "Protect the break. Deep work needs gaps."},
+        {"start": "19:30", "end": "21:00", "title": "HLD / LLD", "kind": "study", "subject": "hld_lld_alt", "guide": "Complete one LLD design or one system-design exercise. Thursday is for finishing, not sampling."},
+        {"start": "21:00", "end": "21:30", "title": "Break", "kind": "break", "subject": "none", "guide": "No technical studying."},
+        {"start": "21:30", "end": "22:00", "title": "Dinner", "kind": "meal", "subject": "none", "guide": "Dinner, then walk, then AI. Do not skip the walk to squeeze more study."},
+        {"start": "22:00", "end": "22:20", "title": "Walk", "kind": "walk", "subject": "walk", "guide": "20-minute walk."},
+        {"start": "22:20", "end": "23:20", "title": "AI", "kind": "study", "subject": "ai", "guide": "Thursday night is for AI implementation work — a project slice, not only reading."},
+        {"start": "23:20", "end": "23:50", "title": "Reading", "kind": "reading", "subject": "reading", "guide": "30-minute reading block."},
+        {"start": "23:50", "end": "00:15", "title": "Shutdown", "kind": "shutdown", "subject": "none", "guide": "Sleep around midnight. Protect total sleep."}
+      ]
+    },
+    "fri": {
+      "label": "Friday",
+      "kind": "office",
+      "summary": "Work 9–7. Night: DSA, then HLD or LLD (alternating weeks).",
+      "blocks": [
+        {"start": "07:30", "end": "08:15", "title": "Morning routine", "kind": "maintenance", "subject": "morning", "guide": "Maintenance only."},
+        {"start": "08:15", "end": "09:00", "title": "Commute / buffer", "kind": "buffer", "subject": "none", "guide": "Keep the morning predictable."},
+        {"start": "09:00", "end": "19:00", "title": "Work", "kind": "work", "subject": "none", "guide": "Office hours."},
+        {"start": "19:00", "end": "19:30", "title": "Decompression", "kind": "break", "subject": "none", "guide": "Reset before DSA."},
+        {"start": "19:30", "end": "21:00", "title": "DSA", "kind": "study", "subject": "dsa", "guide": "One serious problem plus review."},
+        {"start": "21:00", "end": "21:30", "title": "Break", "kind": "break", "subject": "none", "guide": "No technical studying."},
+        {"start": "21:30", "end": "22:00", "title": "Dinner", "kind": "meal", "subject": "none", "guide": "If dinner is late, shift walk and the secondary block."},
+        {"start": "22:00", "end": "22:20", "title": "Walk", "kind": "walk", "subject": "walk", "guide": "20-minute walk."},
+        {"start": "22:20", "end": "23:20", "title": "HLD / LLD", "kind": "study", "subject": "hld_lld_alt", "guide": "Friday alternates HLD and LLD. The dashboard picks this week's subject so it does not collide with Thursday."},
+        {"start": "23:20", "end": "23:50", "title": "Reading", "kind": "reading", "subject": "reading", "guide": "30-minute reading block."},
+        {"start": "23:50", "end": "00:15", "title": "Shutdown", "kind": "shutdown", "subject": "none", "guide": "Protect sleep. Weekend deep work starts Saturday morning, not tonight."}
+      ]
+    },
+    "sat": {
+      "label": "Saturday",
+      "kind": "weekend_focus",
+      "summary": "Long-focus day: ~4–5 hours. DSA, LLD, AI. Evening free.",
+      "blocks": [
+        {"start": "09:00", "end": "09:30", "title": "Wake / breakfast / movement", "kind": "maintenance", "subject": "morning", "guide": "Ease in. Do not start DSA at the breakfast table."},
+        {"start": "09:30", "end": "10:00", "title": "Buffer", "kind": "buffer", "subject": "none", "guide": "Get to the desk for a 10:00 start."},
+        {"start": "10:00", "end": "12:00", "title": "DSA", "kind": "study", "subject": "dsa", "guide": "Two-hour Saturday DSA. Quality over volume. Write the explanation flow for each problem."},
+        {"start": "12:00", "end": "12:30", "title": "Break", "kind": "break", "subject": "none", "guide": "Step away. This is not a five-hour marathon."},
+        {"start": "12:30", "end": "14:00", "title": "LLD", "kind": "study", "subject": "lld", "guide": "1.5 hours LLD. Prefer a complete design, or continue a machine-coding project."},
+        {"start": "14:00", "end": "16:00", "title": "Personal time", "kind": "personal", "subject": "none", "guide": "Protected free time. Do not fill this with extra study by default."},
+        {"start": "16:00", "end": "17:30", "title": "AI", "kind": "study", "subject": "ai", "guide": "1.5 hours AI. Build a slice of the current AI project (NN, transformer, RAG, or agent)."},
+        {"start": "17:30", "end": "21:30", "title": "Evening free", "kind": "free", "subject": "none", "guide": "Evening is free. Dinner still happens around 9:30."},
+        {"start": "21:30", "end": "22:00", "title": "Dinner", "kind": "meal", "subject": "none", "guide": "Dinner."},
+        {"start": "22:00", "end": "22:20", "title": "Walk", "kind": "walk", "subject": "walk", "guide": "20-minute walk."},
+        {"start": "22:20", "end": "23:30", "title": "Wind down", "kind": "free", "subject": "none", "guide": "Keep the night easy. Reading starts at 11:30."},
+        {"start": "23:30", "end": "00:00", "title": "Reading", "kind": "reading", "subject": "reading", "guide": "Saturday reading block is 11:30 PM–12:00 AM."}
+      ]
+    },
+    "sun": {
+      "label": "Sunday",
+      "kind": "weekend_review",
+      "summary": "Mocks, HLD, weekly review. Recovery after 5:30 PM.",
+      "blocks": [
+        {"start": "09:00", "end": "09:30", "title": "Wake / breakfast", "kind": "maintenance", "subject": "morning", "guide": "Ease in. Contest-style DSA starts at 10:00."},
+        {"start": "09:30", "end": "10:00", "title": "Buffer", "kind": "buffer", "subject": "none", "guide": "Set a timer for mock conditions."},
+        {"start": "10:00", "end": "12:00", "title": "DSA mock", "kind": "study", "subject": "dsa", "guide": "Timed / contest-style practice. Track time-to-solve. Do not look up the pattern immediately."},
+        {"start": "12:00", "end": "13:00", "title": "Break", "kind": "break", "subject": "none", "guide": "Full hour. Eat, walk around, reset."},
+        {"start": "13:00", "end": "14:30", "title": "HLD", "kind": "study", "subject": "hld", "guide": "System-design mock. Cover failure modes, capacity, consistency, and why not the alternative."},
+        {"start": "14:30", "end": "16:00", "title": "Lunch / rest", "kind": "personal", "subject": "none", "guide": "Protected rest. Do not skip this to add another mock."},
+        {"start": "16:00", "end": "17:30", "title": "HLD / project architecture", "kind": "study", "subject": "hld", "guide": "Second design block or a production-depth pass on a real project: failure, retries, idempotency, observability."},
+        {"start": "17:30", "end": "21:30", "title": "Free time + weekly review", "kind": "free", "subject": "review", "guide": "Personal time. Before the night ends, fill the weekly review: DSA, LLD, HLD, AI, sleep, walks, reading, energy."},
+        {"start": "21:30", "end": "22:00", "title": "Dinner", "kind": "meal", "subject": "none", "guide": "Dinner."},
+        {"start": "22:00", "end": "22:20", "title": "Walk", "kind": "walk", "subject": "walk", "guide": "20-minute walk."},
+        {"start": "22:20", "end": "23:20", "title": "Wind down", "kind": "free", "subject": "none", "guide": "Keep Sunday night light. Reading at 11:20."},
+        {"start": "23:20", "end": "23:50", "title": "Reading", "kind": "reading", "subject": "reading", "guide": "30-minute reading block."}
+      ]
+    }
+  }
+}
