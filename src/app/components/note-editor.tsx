@@ -5,12 +5,16 @@ import {
   setNotePropertyAction,
   updateNoteAction,
 } from "@/app/actions/zettel";
+import { ThemedMultiSelect } from "@/app/components/themed-multi-select";
+import { NoteRightSidebar } from "@/components/note-right-sidebar";
+import { type CodeTheme } from "@/lib/appearance";
+import { PATTERN_PROPERTY_KEY } from "@/lib/zettel/constants";
 import { noteHref } from "@/lib/zettel/slug";
 import { asStringArray, type PropertyJson } from "@/lib/zettel/values";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState, useTransition } from "react";
-import { SegmentChip } from "./segment-chip";
+import { useEffect, useRef, useState, useTransition, type ReactNode } from "react";
+import { BlockEditor } from "./block-editor";
 
 export type EditorProperty = {
   defId: string;
@@ -38,21 +42,72 @@ export type EditorNote = {
   }[];
 };
 
+const BODY_AUTOSAVE_MS = 600;
+const PROPERTIES_OPEN_KEY = "note-properties-open";
+
 export function NoteEditor({
   note,
   patternTitles,
+  codeTheme,
+  breadcrumb,
 }: {
   note: EditorNote;
   patternTitles: string[];
+  codeTheme: CodeTheme;
+  breadcrumb?: ReactNode;
 }) {
   const router = useRouter();
   const [title, setTitle] = useState(note.title);
   const [body, setBody] = useState(note.body);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const [propertiesOpen, setPropertiesOpen] = useState(true);
+  const lastSaved = useRef({ title: note.title, body: note.body });
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const titleRef = useRef(title);
+  const bodyRef = useRef(body);
+  titleRef.current = title;
+  bodyRef.current = body;
+
   const visible = note.properties.filter((prop) => !prop.isSystem);
   const assigned = visible.filter((prop) => prop.value != null);
   const available = visible.filter((prop) => prop.value == null);
+  const patternProperty = note.properties.find(
+    (prop) => prop.key === PATTERN_PROPERTY_KEY,
+  );
+  const patternValues = asStringArray(patternProperty?.value);
+
+  useEffect(() => {
+    setTitle(note.title);
+    setBody(note.body);
+    lastSaved.current = { title: note.title, body: note.body };
+  }, [note.id]);
+
+  useEffect(() => {
+    try {
+      setPropertiesOpen(window.localStorage.getItem(PROPERTIES_OPEN_KEY) !== "0");
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, []);
+
+  function toggleProperties() {
+    setPropertiesOpen((value) => {
+      const next = !value;
+      try {
+        window.localStorage.setItem(PROPERTIES_OPEN_KEY, next ? "1" : "0");
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+  }
 
   function run(task: () => Promise<{ ok: true } | { ok: false; error: string }>) {
     startTransition(async () => {
@@ -66,114 +121,221 @@ export function NoteEditor({
     });
   }
 
-  function saveIdentity() {
-    run(() => updateNoteAction(note.id, { title, body }));
+  function savePatternValues(values: string[]) {
+    if (!patternProperty) return;
+    run(() => setNotePropertyAction(note.id, patternProperty.defId, values));
+  }
+
+  function flushSave(next?: { title?: string; body?: string }) {
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+      debounceRef.current = null;
+    }
+    const nextTitle = next?.title ?? titleRef.current;
+    const nextBody = next?.body ?? bodyRef.current;
+    if (
+      nextTitle === lastSaved.current.title &&
+      nextBody === lastSaved.current.body
+    ) {
+      return;
+    }
+    lastSaved.current = { title: nextTitle, body: nextBody };
+    startTransition(async () => {
+      setError(null);
+      const result = await updateNoteAction(note.id, {
+        title: nextTitle,
+        body: nextBody,
+      });
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      router.refresh();
+    });
+  }
+
+  function scheduleBodySave(markdown: string) {
+    setBody(markdown);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      flushSave({ body: markdown });
+    }, BODY_AUTOSAVE_MS);
   }
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
-      <section className="space-y-4">
-        <input
-          value={title}
-          onChange={(event) => setTitle(event.target.value)}
-          onBlur={() => {
-            if (title.trim() && title.trim() !== note.title) saveIdentity();
-          }}
-          className="w-full border-0 border-b border-ctp-surface0 bg-transparent pb-2 text-2xl text-ctp-text focus:border-ctp-mauve focus:outline-none"
-        />
-        <textarea
-          value={body}
-          onChange={(event) => setBody(event.target.value)}
-          onKeyDown={(event) => {
-            if ((event.metaKey || event.ctrlKey) && event.key === "s") {
-              event.preventDefault();
-              saveIdentity();
-            }
-          }}
-          spellCheck={false}
-          className="min-h-[28rem] w-full resize-y border border-ctp-surface0 bg-ctp-base p-4 font-mono text-sm text-ctp-text focus:border-ctp-blue focus:outline-none"
-        />
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            disabled={pending}
-            onClick={saveIdentity}
-            className="bg-ctp-blue px-3 py-2 font-mono text-xs text-ctp-crust hover:bg-ctp-sapphire disabled:opacity-50"
-          >
-            {pending ? "Saving…" : "Save body"}
-          </button>
-          <p className="font-mono text-xs text-ctp-overlay0">⌘S</p>
-        </div>
-        {error ? <p className="text-sm text-ctp-red">{error}</p> : null}
-
-        {note.linkedPatterns.length > 0 ? (
-          <div>
-            <h2 className="font-mono text-xs uppercase tracking-wide text-ctp-overlay0">
-              Linked pattern hubs
-            </h2>
-            <ul className="mt-2 flex flex-wrap gap-2">
-              {note.linkedPatterns.map((pattern) => (
-                <li key={pattern.id}>
-                  <Link href={noteHref("pattern", pattern.slug)}>
-                    <SegmentChip kind="pattern" value={pattern.title} />
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ) : null}
-
-        {note.type === "pattern" ? (
-          <Backlinks backlinks={note.backlinks} />
-        ) : null}
-      </section>
-
-      <aside className="space-y-4 border border-ctp-surface0 bg-ctp-base p-4">
-        <h2 className="font-mono text-xs uppercase tracking-wide text-ctp-mauve">
-          Properties
-        </h2>
-        <div className="space-y-4">
-          {assigned.map((prop) => (
-            <PropertyField
-              key={`${prop.defId}:${JSON.stringify(prop.value)}`}
-              noteId={note.id}
-              property={prop}
-              patternTitles={patternTitles}
-              disabled={pending}
-              onSave={(value) =>
-                run(() => setNotePropertyAction(note.id, prop.defId, value))
+    <>
+      <main
+        data-note-page
+        className="flex min-h-0 min-w-0 flex-1 flex-col px-5 pb-8 pt-6 lg:h-screen lg:overflow-hidden"
+      >
+        <div className="mx-auto flex min-h-0 w-full max-w-[52rem] flex-1 flex-col gap-3 lg:overflow-hidden">
+          {breadcrumb ? <div className="shrink-0">{breadcrumb}</div> : null}
+          <input
+            value={title}
+            onChange={(event) => setTitle(event.target.value)}
+            onBlur={() => {
+              if (title.trim() && title.trim() !== lastSaved.current.title) {
+                flushSave({ title: title.trim() });
               }
-              onRemove={() =>
-                run(() => removeNotePropertyAction(note.id, prop.defId))
-              }
-            />
-          ))}
-        </div>
-        {available.length > 0 ? (
-          <AddPropertySelect
-            properties={available}
-            disabled={pending}
-            onAdd={(prop) => {
-              const initial =
-                prop.valueType === "checkbox"
-                  ? false
-                  : prop.valueType === "wikilink_list" ||
-                      prop.valueType === "multi_select"
-                    ? []
-                    : prop.valueType === "number"
-                      ? 0
-                      : "";
-              run(() =>
-                setNotePropertyAction(
-                  note.id,
-                  prop.defId,
-                  initial as PropertyJson,
-                ),
-              );
+            }}
+            className="w-full shrink-0 border-0 border-b border-ctp-surface0 bg-transparent pb-2 text-2xl text-ctp-text focus:border-ctp-mauve focus:outline-none"
+          />
+          <BlockEditor
+            key={note.id}
+            initialMarkdown={note.body}
+            codeTheme={codeTheme}
+            onMarkdownChange={scheduleBodySave}
+            onRequestSave={(markdown) => {
+              setBody(markdown);
+              flushSave({ body: markdown });
             }}
           />
-        ) : null}
-      </aside>
+          {error ? <p className="shrink-0 text-sm text-ctp-red">{error}</p> : null}
+
+          {note.type === "pattern" ? (
+            <div className="shrink-0 overflow-y-auto">
+              <Backlinks backlinks={note.backlinks} />
+            </div>
+          ) : null}
+        </div>
+      </main>
+
+      <NoteRightSidebar>
+        <div className="flex flex-col gap-4">
+          <div>
+            <button
+              type="button"
+              onClick={toggleProperties}
+              aria-expanded={propertiesOpen}
+              className="flex w-full items-center justify-between gap-2 font-mono text-xs uppercase tracking-wide text-ctp-mauve hover:text-ctp-lavender"
+            >
+              <span>Properties</span>
+              <span aria-hidden className="text-[10px] text-ctp-overlay0">
+                {propertiesOpen ? "▾" : "▸"}
+              </span>
+            </button>
+            {propertiesOpen ? (
+              <div className="mt-3 space-y-4">
+                {assigned.map((prop) => (
+                  <PropertyField
+                    key={`${prop.defId}:${JSON.stringify(prop.value)}`}
+                    property={prop}
+                    patternTitles={patternTitles}
+                    disabled={pending}
+                    onSave={(value) =>
+                      run(() => setNotePropertyAction(note.id, prop.defId, value))
+                    }
+                    onRemove={() =>
+                      run(() => removeNotePropertyAction(note.id, prop.defId))
+                    }
+                  />
+                ))}
+                {available.length > 0 ? (
+                  <AddPropertySelect
+                    properties={available}
+                    disabled={pending}
+                    onAdd={(prop) => {
+                      const initial =
+                        prop.valueType === "checkbox"
+                          ? false
+                          : prop.valueType === "wikilink_list" ||
+                              prop.valueType === "multi_select" ||
+                              prop.key === PATTERN_PROPERTY_KEY
+                            ? []
+                            : prop.valueType === "number"
+                              ? 0
+                              : "";
+                      run(() =>
+                        setNotePropertyAction(
+                          note.id,
+                          prop.defId,
+                          initial as PropertyJson,
+                        ),
+                      );
+                    }}
+                  />
+                ) : null}
+              </div>
+            ) : null}
+          </div>
+
+          {patternProperty ? (
+            <LinkedTagHubs
+              patterns={note.linkedPatterns}
+              values={patternValues}
+              suggestions={patternTitles}
+              disabled={pending}
+              onChange={savePatternValues}
+            />
+          ) : (
+            <LinkedTagHubsReadOnly patterns={note.linkedPatterns} />
+          )}
+        </div>
+      </NoteRightSidebar>
+    </>
+  );
+}
+
+function LinkedTagHubs({
+  patterns,
+  values,
+  suggestions,
+  disabled,
+  onChange,
+}: {
+  patterns: EditorNote["linkedPatterns"];
+  values: string[];
+  suggestions: string[];
+  disabled: boolean;
+  onChange: (values: string[]) => void;
+}) {
+  const hrefByTitle = new Map(
+    patterns.map((pattern) => [pattern.title, noteHref("pattern", pattern.slug)]),
+  );
+
+  return (
+    <div>
+      <h2 className="mb-2 font-mono text-xs uppercase tracking-wide text-ctp-overlay0">
+        Linked tag hubs
+      </h2>
+      <ThemedMultiSelect
+        values={values}
+        suggestions={suggestions}
+        disabled={disabled}
+        placeholder="Add pattern…"
+        onChange={onChange}
+        getHref={(title) => hrefByTitle.get(title)}
+      />
+    </div>
+  );
+}
+
+function LinkedTagHubsReadOnly({
+  patterns,
+}: {
+  patterns: EditorNote["linkedPatterns"];
+}) {
+  return (
+    <div>
+      <h2 className="font-mono text-xs uppercase tracking-wide text-ctp-overlay0">
+        Linked tag hubs
+      </h2>
+      {patterns.length === 0 ? (
+        <p className="mt-2 text-sm text-ctp-overlay0">No linked tag hubs yet.</p>
+      ) : (
+        <ul className="mt-2 flex flex-wrap gap-2">
+          {patterns.map((pattern) => (
+            <li key={pattern.id}>
+              <Link
+                href={noteHref("pattern", pattern.slug)}
+                className="inline-flex items-center rounded-sm bg-ctp-mauve/20 px-2 py-0.5 font-mono text-xs text-ctp-mauve hover:text-ctp-lavender"
+              >
+                {pattern.title}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
@@ -245,14 +407,12 @@ function AddPropertySelect({
 }
 
 function PropertyField({
-  noteId,
   property,
   patternTitles,
   disabled,
   onSave,
   onRemove,
 }: {
-  noteId: string;
   property: EditorProperty;
   patternTitles: string[];
   disabled: boolean;
@@ -260,7 +420,6 @@ function PropertyField({
   onRemove: () => void;
 }) {
   const options = asStringArray(property.options);
-  const listId = `${noteId}-${property.defId}-patterns`;
 
   return (
     <div className="space-y-1">
@@ -278,20 +437,10 @@ function PropertyField({
       <FieldControl
         property={property}
         options={options}
-        listId={listId}
         patternTitles={patternTitles}
         disabled={disabled}
         onSave={onSave}
       />
-      {(property.valueType === "wikilink_list" ||
-        property.key === "Pattern") &&
-      patternTitles.length > 0 ? (
-        <datalist id={listId}>
-          {patternTitles.map((title) => (
-            <option key={title} value={title} />
-          ))}
-        </datalist>
-      ) : null}
     </div>
   );
 }
@@ -299,19 +448,37 @@ function PropertyField({
 function FieldControl({
   property,
   options,
-  listId,
   patternTitles,
   disabled,
   onSave,
 }: {
   property: EditorProperty;
   options: string[];
-  listId: string;
   patternTitles: string[];
   disabled: boolean;
   onSave: (value: PropertyJson | null) => void;
 }) {
   const value = property.value;
+  const isPattern =
+    property.key === PATTERN_PROPERTY_KEY ||
+    property.valueType === "wikilink_list" ||
+    property.valueType === "multi_select";
+
+  if (isPattern) {
+    const suggestions =
+      property.valueType === "multi_select" ? options : patternTitles;
+    return (
+      <ThemedMultiSelect
+        values={asStringArray(value)}
+        suggestions={suggestions}
+        disabled={disabled}
+        placeholder={
+          property.key === PATTERN_PROPERTY_KEY ? "Add pattern…" : "Add…"
+        }
+        onChange={onSave}
+      />
+    );
+  }
 
   switch (property.valueType) {
     case "select":
@@ -362,32 +529,12 @@ function FieldControl({
           className="w-full border border-ctp-surface1 bg-ctp-mantle px-2 py-1.5 font-mono text-sm"
         />
       );
-    case "multi_select":
-      return (
-        <ChipList
-          values={asStringArray(value)}
-          suggestions={options}
-          disabled={disabled}
-          onChange={onSave}
-        />
-      );
-    case "wikilink_list":
-      return (
-        <ChipList
-          values={asStringArray(value)}
-          suggestions={patternTitles}
-          listId={listId}
-          disabled={disabled}
-          onChange={onSave}
-        />
-      );
     case "wikilink":
       return (
         <input
           type="text"
           disabled={disabled}
           defaultValue={typeof value === "string" ? value : ""}
-          list={listId}
           onBlur={(event) => onSave(event.target.value)}
           className="w-full border border-ctp-surface1 bg-ctp-mantle px-2 py-1.5 text-sm"
         />
@@ -403,92 +550,4 @@ function FieldControl({
         />
       );
   }
-}
-
-function ChipList({
-  values,
-  suggestions,
-  listId,
-  disabled,
-  onChange,
-}: {
-  values: string[];
-  suggestions: string[];
-  listId?: string;
-  disabled: boolean;
-  onChange: (value: string[]) => void;
-}) {
-  const [draft, setDraft] = useState("");
-  const unused = useMemo(
-    () => suggestions.filter((item) => !values.includes(item)),
-    [suggestions, values],
-  );
-
-  function add(raw: string) {
-    const next = raw.trim();
-    if (!next || values.includes(next)) {
-      setDraft("");
-      return;
-    }
-    onChange([...values, next]);
-    setDraft("");
-  }
-
-  return (
-    <div className="space-y-2">
-      <ul className="flex flex-wrap gap-1">
-        {values.map((item) => (
-          <li key={item}>
-            <button
-              type="button"
-              disabled={disabled}
-              onClick={() => onChange(values.filter((value) => value !== item))}
-              className="bg-ctp-mauve/20 px-2 py-0.5 font-mono text-xs text-ctp-mauve hover:bg-ctp-red/20 hover:text-ctp-red"
-            >
-              {item} ×
-            </button>
-          </li>
-        ))}
-      </ul>
-      <div className="flex gap-1">
-        <input
-          value={draft}
-          disabled={disabled}
-          list={listId}
-          onChange={(event) => setDraft(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === "Enter") {
-              event.preventDefault();
-              add(draft);
-            }
-          }}
-          placeholder="Add…"
-          className="min-w-0 flex-1 border border-ctp-surface1 bg-ctp-mantle px-2 py-1 text-sm"
-        />
-        <button
-          type="button"
-          disabled={disabled || !draft.trim()}
-          onClick={() => add(draft)}
-          className="px-2 font-mono text-xs text-ctp-blue"
-        >
-          Add
-        </button>
-      </div>
-      {unused.length > 0 && unused.length <= 12 ? (
-        <div className="flex flex-wrap gap-1">
-          {unused.slice(0, 8).map((item) => (
-            <button
-              key={item}
-              type="button"
-              disabled={disabled}
-              onClick={() => add(item)}
-              className="font-mono text-[10px] text-ctp-overlay0 hover:text-ctp-text"
-            >
-              + {item}
-            </button>
-          ))}
-        </div>
-      ) : null}
-    </div>
-  );
 }

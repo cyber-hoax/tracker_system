@@ -6,7 +6,7 @@ import { listPatterns, patternUrlSlug } from "@/lib/zettel";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Patterns — SDE Tracker",
+  title: "Patterns",
 };
 
 export default async function PatternsPage() {

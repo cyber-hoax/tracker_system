@@ -12,7 +12,7 @@ import { asStringArray } from "@/lib/zettel/values";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Graph — SDE Tracker",
+  title: "Graph",
 };
 
 export default async function GraphPage({

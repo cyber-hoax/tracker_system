@@ -4,7 +4,7 @@ import { buildBriefing } from "@/lib/coach";
 import { recentSessions } from "@/lib/progress";
 
 export const metadata = {
-  title: "SDE Prep — Today",
+  title: "Today",
 };
 
 export default async function Home() {

@@ -42,7 +42,9 @@ export { parsePropertyValue, isWikilinkType } from "./values";
 export { syncPropertyLinks } from "./links";
 export {
   createNote,
+  deleteNote,
   getNoteByRoute,
+  getNoteBySlug,
   isHiddenEditorKey,
   listPatternTitles,
   listPatterns,

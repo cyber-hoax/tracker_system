@@ -12,7 +12,7 @@ export function NoteBreadcrumb({
   return (
     <nav
       aria-label="Breadcrumb"
-      className="flex flex-wrap items-center gap-2 font-mono text-xs"
+      className="flex flex-wrap items-center gap-2 font-mono text-xs shrink-0"
     >
       <Link
         href={parentHref}

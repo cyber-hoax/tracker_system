@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { propertyValueTypes, type PropertyValueType } from "@/db/schema";
+import { propertyValueTypes, noteTypes, type PropertyValueType } from "@/db/schema";
 import { writeNoteToVault } from "@/lib/obsidian";
 import {
   createNote,
@@ -28,10 +28,12 @@ async function persistVault(noteId: string) {
 }
 
 function revalidateNotes() {
+  revalidatePath("/");
   revalidatePath("/dsa");
   revalidatePath("/dsa/[slug]", "page");
   revalidatePath("/patterns");
   revalidatePath("/patterns/[slug]", "page");
+  revalidatePath("/notes/[slug]", "page");
   revalidatePath("/settings");
 }
 
@@ -41,12 +43,17 @@ function asString(formData: FormData, key: string): string {
 }
 
 export async function createNoteAction(formData: FormData) {
-  const type = asString(formData, "type");
+  const typeRaw = asString(formData, "type");
   const title = asString(formData, "title");
-  if (type !== "problem" && type !== "pattern") {
+  const folderId = asString(formData, "folderId") || undefined;
+  if (!noteTypes.includes(typeRaw as (typeof noteTypes)[number])) {
     throw new Error("Invalid note type");
   }
-  const note = await createNote({ type, title });
+  const note = await createNote({
+    type: typeRaw as (typeof noteTypes)[number],
+    title,
+    folderId,
+  });
   await persistVault(note.id);
   revalidateNotes();
   redirect(noteHref(note.type, note.slug));

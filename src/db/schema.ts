@@ -12,6 +12,7 @@ import {
   timestamp,
   uniqueIndex,
   uuid,
+  type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 
 const tsvector = customType<{ data: string }>({
@@ -20,7 +21,7 @@ const tsvector = customType<{ data: string }>({
   },
 });
 
-export const noteTypes = ["problem", "pattern", "lld", "hld"] as const;
+export const noteTypes = ["problem", "pattern", "lld", "hld", "ai", "note"] as const;
 export const linkKinds = ["pattern", "wikilink", "manual"] as const;
 export const propertyValueTypes = [
   "text",
@@ -37,6 +38,21 @@ export type NoteType = (typeof noteTypes)[number];
 export type LinkKind = (typeof linkKinds)[number];
 export type PropertyValueType = (typeof propertyValueTypes)[number];
 
+export const folders = pgTable(
+  "folders",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    parentId: uuid("parent_id").references((): AnyPgColumn => folders.id, {
+      onDelete: "cascade",
+    }),
+    name: text("name").notNull(),
+    sortOrder: integer("sort_order").notNull().default(0),
+  },
+  (table) => [
+    index("folders_parent_id_idx").on(table.parentId),
+  ],
+);
+
 export const notes = pgTable(
   "notes",
   {
@@ -46,6 +62,9 @@ export const notes = pgTable(
     slug: text("slug").notNull(),
     body: text("body").notNull().default(""),
     filePath: text("file_path"),
+    folderId: uuid("folder_id").references(() => folders.id, {
+      onDelete: "cascade",
+    }),
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -55,10 +74,11 @@ export const notes = pgTable(
     uniqueIndex("notes_slug_idx").on(table.slug),
     uniqueIndex("notes_file_path_idx").on(table.filePath),
     index("notes_type_idx").on(table.type),
+    index("notes_folder_id_idx").on(table.folderId),
     index("notes_search_vector_idx").using("gin", table.searchVector),
     check(
       "notes_type_check",
-      sql`${table.type} in ('problem', 'pattern', 'lld', 'hld')`,
+      sql`${table.type} in ('problem', 'pattern', 'lld', 'hld', 'ai', 'note')`,
     ),
   ],
 );
@@ -147,7 +167,38 @@ export const weeklyReviews = pgTable(
   (table) => [uniqueIndex("weekly_reviews_week_start_idx").on(table.weekStart)],
 );
 
-export const notesRelations = relations(notes, ({ many }) => ({
+export const trashSnapshots = pgTable(
+  "trash_snapshots",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    kind: text("kind").notNull(),
+    label: text("label").notNull(),
+    payload: jsonb("payload").$type<unknown>().notNull(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("trash_snapshots_deleted_at_idx").on(table.deletedAt),
+    check("trash_snapshots_kind_check", sql`${table.kind} in ('folder', 'note')`),
+  ],
+);
+
+export const foldersRelations = relations(folders, ({ one, many }) => ({
+  parent: one(folders, {
+    fields: [folders.parentId],
+    references: [folders.id],
+    relationName: "folder_parent",
+  }),
+  children: many(folders, { relationName: "folder_parent" }),
+  notes: many(notes),
+}));
+
+export const notesRelations = relations(notes, ({ many, one }) => ({
+  folder: one(folders, {
+    fields: [notes.folderId],
+    references: [folders.id],
+  }),
   properties: many(noteProperties),
   outgoingLinks: many(links, { relationName: "links_from" }),
   incomingLinks: many(links, { relationName: "links_to" }),

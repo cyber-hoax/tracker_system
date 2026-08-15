@@ -14,7 +14,7 @@ import { asStringArray } from "@/lib/zettel/values";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Search — SDE Tracker",
+  title: "Search",
 };
 
 export default async function SearchPage({

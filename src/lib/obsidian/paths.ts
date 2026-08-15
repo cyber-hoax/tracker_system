@@ -1,4 +1,5 @@
 import path from "node:path";
+import type { NoteType } from "@/db/schema";
 
 const DEFAULT_TRACKER_DIR = "Notion/tracker";
 const PATTERNS_DIR = "Patterns";
@@ -21,14 +22,15 @@ export function toPosix(filePath: string): string {
   return filePath.replaceAll("\\", "/");
 }
 
-export function relativeNotePath(
-  type: "problem" | "pattern",
-  title: string,
-): string {
+export function relativeNotePath(type: NoteType, title: string): string {
   const fileName = `${title}.md`;
   if (type === "pattern") {
     return `${PATTERNS_DIR}/${fileName}`;
   }
+  if (type === "lld") return `${trackerDirRel()}/LLD/${fileName}`;
+  if (type === "hld") return `${trackerDirRel()}/HLD/${fileName}`;
+  if (type === "ai") return `${trackerDirRel()}/AI/${fileName}`;
+  if (type === "note") return `${trackerDirRel()}/Notes/${fileName}`;
   return `${trackerDirRel()}/${fileName}`;
 }
 

@@ -1,6 +1,7 @@
 import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { relativeNotePath } from "@/lib/obsidian/paths";
+import { defaultFolderIdForType } from "@/lib/workspace/folders";
 import {
   links,
   noteProperties,
@@ -49,6 +50,7 @@ export type ProblemListItem = {
   patterns: string[];
   lastSolved?: string;
   nextRevision?: string;
+  revisionCount?: number;
 };
 
 export type PatternListItem = {
@@ -119,12 +121,17 @@ export async function listProblems(
       patterns,
       lastSolved: stringProp(values["Last Solved Date"]),
       nextRevision: stringProp(values["Next Revision Date"]),
+      revisionCount: numberProp(values["Revision Count"]),
     };
   });
 }
 
 function stringProp(value: unknown): string | undefined {
   return typeof value === "string" && value.trim() ? value : undefined;
+}
+
+function numberProp(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
 }
 
 export async function listPatterns(): Promise<PatternListItem[]> {
@@ -223,9 +230,17 @@ export async function listPatternTitles(): Promise<string[]> {
   return rows.map((row) => row.title);
 }
 
+export async function getNoteBySlug(slugParam: string): Promise<NoteDetail | null> {
+  const [note] = await db.select().from(notes).where(eq(notes.slug, slugParam)).limit(1);
+  if (!note) return null;
+  return assembleNoteDetail(note);
+}
+
 export async function createNote(input: {
-  type: Extract<NoteType, "problem" | "pattern">;
+  type: NoteType;
   title: string;
+  folderId?: string | null;
+  body?: string;
 }): Promise<NoteRecord> {
   const title = input.title.trim();
   if (!title) {
@@ -235,9 +250,14 @@ export async function createNote(input: {
     input.type === "pattern" ? patternDbSlug(title) : slugify(title);
   const slug = await uniqueSlug(baseSlug);
   const body =
-    input.type === "pattern"
+    input.body ??
+    (input.type === "pattern"
       ? `# ${title}\n\nProblems connected to this pattern appear in the graph.\n\n<!-- boilerplate:start -->\n\n<!-- boilerplate:end -->\n`
-      : "";
+      : "");
+  const folderId =
+    input.folderId !== undefined
+      ? input.folderId
+      : await defaultFolderIdForType(input.type);
 
   const [created] = await db
     .insert(notes)
@@ -246,10 +266,18 @@ export async function createNote(input: {
       title,
       slug,
       body,
+      folderId,
       filePath: relativeNotePath(input.type, title),
     })
     .returning();
   return created;
+}
+
+export async function deleteNote(id: string): Promise<NoteRecord> {
+  const [row] = await db.select().from(notes).where(eq(notes.id, id)).limit(1);
+  if (!row) throw new Error("Note not found");
+  await db.delete(notes).where(eq(notes.id, id));
+  return row;
 }
 
 export async function updateNote(

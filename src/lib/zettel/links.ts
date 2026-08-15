@@ -12,6 +12,7 @@ import { PATTERN_PROPERTY_KEY } from "./constants";
 import { patternDbSlug, slugify } from "./slug";
 import { isWikilinkType, wikilinkTargetsFromValue } from "./values";
 import { displayWikilink, parseWikilink, wikilinkLeaf } from "./wikilink";
+import { defaultFolderIdForType } from "@/lib/workspace/folders";
 
 type Executor = Pick<typeof db, "select" | "insert" | "delete">;
 
@@ -117,6 +118,7 @@ async function resolveOrCreatePatternNote(raw: string, executor: Executor) {
 
   const title = displayWikilink(raw);
   const slug = await uniqueSlug(patternDbSlug(title), executor);
+  const folderId = await defaultFolderIdForType("pattern");
   const [created] = await executor
     .insert(notes)
     .values({
@@ -124,6 +126,7 @@ async function resolveOrCreatePatternNote(raw: string, executor: Executor) {
       title,
       slug,
       body: `# ${title}\n\nProblems connected to this pattern appear in the graph.\n`,
+      folderId,
     })
     .returning();
   return created;

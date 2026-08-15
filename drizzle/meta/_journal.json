@@ -15,6 +15,27 @@
       "when": 1786806646170,
       "tag": "0001_search_vector",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1786819806943,
+      "tag": "0002_natural_secret_warriors",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1786821275205,
+      "tag": "0003_promote_design_folders",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1786822829887,
+      "tag": "0004_low_omega_sentinel",
+      "breakpoints": true
     }
   ]
 }

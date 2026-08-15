@@ -20,6 +20,7 @@
     "dotenv": "^17.4.2",
     "drizzle-orm": "^0.44.7",
     "gray-matter": "^4.0.3",
+    "highlight.js": "^11.12.0",
     "leetcode-query": "^2.0.1",
     "next": "16.3.1",
     "postgres": "^3.4.9",

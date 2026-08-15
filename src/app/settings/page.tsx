@@ -11,11 +11,15 @@ import { getLeetCodeSettingsView } from "@/lib/leetcode";
 import { trackerDirRel, vaultRoot } from "@/lib/obsidian";
 import { listPropertyDefs } from "@/lib/zettel";
 import { asStringArray } from "@/lib/zettel/values";
+import { AppearanceSettings } from "@/app/components/appearance-settings";
+import { getAppName, loadAppearance } from "@/lib/appearance-store";
+import { TrashSnapshots } from "@/app/components/trash-snapshots";
+import { listTrashSnapshots } from "@/lib/workspace/snapshots";
 
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Settings — SDE Tracker",
+  title: "Settings",
 };
 
 export default async function SettingsPage() {
@@ -24,9 +28,26 @@ export default async function SettingsPage() {
   const vault = vaultRoot();
   const trackerDir = trackerDirRel();
   const leetcode = getLeetCodeSettingsView();
+  const appearance = loadAppearance();
+  const appName = getAppName();
+  const snapshots = await listTrashSnapshots();
 
   return (
     <main className="space-y-8">
+      <section className="space-y-3">
+        <p className="font-mono text-xs uppercase tracking-[0.18em] text-ctp-overlay0">
+          Appearance
+        </p>
+        <h1 className="mt-1 text-2xl text-ctp-text">Settings</h1>
+        <p className="mt-2 max-w-2xl text-sm text-ctp-subtext0">
+          Color and font presets apply across the app. Code block themes are
+          independent. Markdown tweaks target note bodies.
+        </p>
+        <AppearanceSettings appName={appName} initial={appearance} />
+      </section>
+
+      <TrashSnapshots snapshots={snapshots} />
+
       <section className="space-y-3 border border-ctp-surface0 bg-ctp-base p-4">
         <h2 className="font-mono text-xs uppercase tracking-wide text-ctp-mauve">
           Obsidian vault
@@ -67,7 +88,7 @@ export default async function SettingsPage() {
         <p className="font-mono text-xs uppercase tracking-[0.18em] text-ctp-overlay0">
           Schema
         </p>
-        <h1 className="mt-1 text-2xl text-ctp-text">Note properties</h1>
+        <h2 className="mt-1 text-2xl text-ctp-text">Note properties</h2>
         <p className="mt-2 max-w-2xl text-sm text-ctp-subtext0">
           Add or remove property definitions. Removing a definition deletes every
           stored value (cascade). System fields stay hidden on the note editor

@@ -14,7 +14,7 @@ import { asStringArray } from "@/lib/zettel/values";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "DSA — SDE Tracker",
+  title: "DSA",
 };
 
 export default async function DsaPage({

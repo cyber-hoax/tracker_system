@@ -1,4 +1,4 @@
-import { readdir, readFile, rename, stat, mkdir, writeFile } from "node:fs/promises";
+import { readdir, readFile, rename, stat, mkdir, writeFile, unlink } from "node:fs/promises";
 import path from "node:path";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
@@ -7,6 +7,7 @@ import {
   notes,
   type NoteType,
 } from "@/db/schema";
+import { defaultFolderIdForType } from "@/lib/workspace/folders";
 import { findPatternNote, uniqueSlug, syncPropertyLinks } from "@/lib/zettel/links";
 import { listPropertyDefs } from "@/lib/zettel/notes";
 import { patternDbSlug, slugify } from "@/lib/zettel/slug";
@@ -90,6 +91,19 @@ export async function syncFromObsidian(): Promise<SyncReport> {
   report.problems = counts.filter((row) => row.type === "problem").length;
   report.patterns = counts.filter((row) => row.type === "pattern").length;
   return report;
+}
+
+export async function deleteNoteFromVault(filePath: string | null | undefined): Promise<void> {
+  if (!filePath || !vaultRoot()) return;
+  try {
+    await unlink(absoluteVaultPath(filePath));
+  } catch (error) {
+    const code =
+      error && typeof error === "object" && "code" in error
+        ? String((error as { code?: unknown }).code)
+        : "";
+    if (code !== "ENOENT") throw error;
+  }
 }
 
 export async function writeNoteToVault(noteId: string): Promise<void> {
@@ -198,6 +212,7 @@ async function insertNoteFromFile(
   const baseSlug =
     file.type === "pattern" ? patternDbSlug(file.title) : slugify(file.title);
   const slug = await uniqueSlug(baseSlug);
+  const folderId = await defaultFolderIdForType(file.type);
   const [created] = await db
     .insert(notes)
     .values({
@@ -206,6 +221,7 @@ async function insertNoteFromFile(
       slug,
       body,
       filePath: file.relativePath,
+      folderId,
       updatedAt: file.mtime,
     })
     .returning();

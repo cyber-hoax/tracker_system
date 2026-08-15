@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { NoteEditor } from "@/app/components/note-editor";
 import { NoteBreadcrumb } from "@/components/note-breadcrumb";
+import { loadAppearance } from "@/lib/appearance-store";
 import { getNoteByRoute, listPatternTitles } from "@/lib/zettel";
 
 export const dynamic = "force-dynamic";
@@ -29,13 +30,17 @@ export default async function PatternPage({
   if (!note) notFound();
 
   return (
-    <main className="space-y-4">
-      <NoteBreadcrumb
-        parentHref="/patterns"
-        parentLabel="Patterns"
-        current={note.title}
-      />
-      <NoteEditor note={note} patternTitles={patternTitles} />
-    </main>
+    <NoteEditor
+      breadcrumb={
+        <NoteBreadcrumb
+          parentHref="/patterns"
+          parentLabel="Patterns"
+          current={note.title}
+        />
+      }
+      note={note}
+      patternTitles={patternTitles}
+      codeTheme={loadAppearance().codeTheme}
+    />
   );
 }

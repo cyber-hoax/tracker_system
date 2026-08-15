@@ -32,5 +32,8 @@ export function noteHref(type: string, slug: string): string {
   if (type === "pattern") {
     return `/patterns/${patternUrlSlug(slug)}`;
   }
-  return `/dsa/${slug}`;
+  if (type === "problem") {
+    return `/dsa/${slug}`;
+  }
+  return `/notes/${slug}`;
 }

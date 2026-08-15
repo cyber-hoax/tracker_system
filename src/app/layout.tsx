@@ -1,6 +1,11 @@
+import type { CSSProperties } from "react";
 import type { Metadata } from "next";
-import { JetBrains_Mono } from "next/font/google";
+import { Inter, JetBrains_Mono } from "next/font/google";
+import { connection } from "next/server";
 import { AppShell } from "@/components/app-shell";
+import { appearanceStyle } from "@/lib/appearance";
+import { getAppName, loadAppearance } from "@/lib/appearance-store";
+import { loadWorkspaceTree } from "@/lib/workspace/folders";
 import "./globals.css";
 
 const jetbrainsMono = JetBrains_Mono({
@@ -8,16 +13,40 @@ const jetbrainsMono = JetBrains_Mono({
   variable: "--font-jetbrains-mono",
 });
 
-export const metadata: Metadata = {
-  title: "SDE Tracker",
-  description: "Local Zettelkasten DSA tracker",
-};
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+});
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export async function generateMetadata(): Promise<Metadata> {
+  const name = getAppName();
+  return {
+    title: {
+      default: name,
+      template: `%s — ${name}`,
+    },
+    description: "Local Zettelkasten DSA tracker",
+  };
+}
+
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  await connection();
+  const appearance = loadAppearance();
+  const appName = getAppName();
+  const tree = await loadWorkspaceTree();
+
   return (
-    <html lang="en">
-      <body className={`${jetbrainsMono.variable} antialiased`}>
-        <AppShell>{children}</AppShell>
+    <html
+      lang="en"
+      data-theme={appearance.colorTheme}
+      data-code-theme={appearance.codeTheme}
+      className={`${jetbrainsMono.variable} ${inter.variable}`}
+      style={appearanceStyle(appearance) as CSSProperties}
+    >
+      <body className="antialiased">
+        <AppShell appName={appName} tree={tree}>
+          {children}
+        </AppShell>
       </body>
     </html>
   );
