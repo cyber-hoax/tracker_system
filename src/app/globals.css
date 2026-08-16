@@ -27,6 +27,11 @@
   --ctp-base: #1e1e2e;
   --ctp-mantle: #181825;
   --ctp-crust: #11111b;
+  --heat-0: var(--ctp-surface0);
+  --heat-1: color-mix(in srgb, var(--ctp-green) 28%, var(--ctp-surface0));
+  --heat-2: color-mix(in srgb, var(--ctp-green) 48%, var(--ctp-surface0));
+  --heat-3: color-mix(in srgb, var(--ctp-green) 72%, var(--ctp-surface0));
+  --heat-4: var(--ctp-green);
 }
 
 @theme inline {
@@ -69,6 +74,21 @@ body {
   color: var(--ctp-text);
   font-family: var(--font-ui), var(--font-jetbrains-mono), ui-sans-serif,
     system-ui, sans-serif;
+}
+
+:where(.border) {
+  border-radius: 1rem;
+}
+
+:where(
+  input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not(
+      [type="range"]
+    ):not([type="color"]):not([type="hidden"]),
+  textarea,
+  select,
+  button
+) {
+  border-radius: 0.75rem;
 }
 
 [data-theme="macchiato"] {
@@ -214,6 +234,64 @@ body {
   --ctp-base: #0d1117;
   --ctp-mantle: #010409;
   --ctp-crust: #010409;
+}
+
+[data-theme="kanagawa"] {
+  --ctp-rosewater: #d27e99;
+  --ctp-flamingo: #e46876;
+  --ctp-pink: #d27e99;
+  --ctp-mauve: #957fb8;
+  --ctp-red: #c34043;
+  --ctp-maroon: #e82424;
+  --ctp-peach: #ffa066;
+  --ctp-yellow: #e6c384;
+  --ctp-green: #98bb6c;
+  --ctp-teal: #6a9589;
+  --ctp-sky: #7aa89f;
+  --ctp-sapphire: #7fb4ca;
+  --ctp-blue: #7e9cd8;
+  --ctp-lavender: #938aa9;
+  --ctp-text: #dcd7ba;
+  --ctp-subtext1: #c8c093;
+  --ctp-subtext0: #727169;
+  --ctp-overlay2: #717c7c;
+  --ctp-overlay1: #54546d;
+  --ctp-overlay0: #54546d;
+  --ctp-surface2: #363646;
+  --ctp-surface1: #2a2a37;
+  --ctp-surface0: #223249;
+  --ctp-base: #1f1f28;
+  --ctp-mantle: #181820;
+  --ctp-crust: #16161d;
+}
+
+[data-theme="kanagawa-dragon"] {
+  --ctp-rosewater: #d27e99;
+  --ctp-flamingo: #e46876;
+  --ctp-pink: #d27e99;
+  --ctp-mauve: #957fb8;
+  --ctp-red: #c34043;
+  --ctp-maroon: #e82424;
+  --ctp-peach: #ffa066;
+  --ctp-yellow: #e6c384;
+  --ctp-green: #98bb6c;
+  --ctp-teal: #6a9589;
+  --ctp-sky: #7aa89f;
+  --ctp-sapphire: #7fb4ca;
+  --ctp-blue: #7e9cd8;
+  --ctp-lavender: #938aa9;
+  --ctp-text: #dcd7ba;
+  --ctp-subtext1: #c8c093;
+  --ctp-subtext0: #727169;
+  --ctp-overlay2: #717c7c;
+  --ctp-overlay1: #54546d;
+  --ctp-overlay0: #363646;
+  --ctp-surface2: #363646;
+  --ctp-surface1: #2a2a37;
+  --ctp-surface0: #223249;
+  --ctp-base: #1f1f28;
+  --ctp-mantle: #16161d;
+  --ctp-crust: #0d0c0c;
 }
 
 .markdown {
@@ -380,6 +458,42 @@ body {
   --code-meta: #179299;
 }
 
+[data-code-theme="kanagawa"] {
+  --code-bg: #1f1f28;
+  --code-fg: #dcd7ba;
+  --code-comment: #727169;
+  --code-keyword: #957fb8;
+  --code-string: #98bb6c;
+  --code-number: #ffa066;
+  --code-function: #7e9cd8;
+  --code-class: #e6c384;
+  --code-built-in: #7fb4ca;
+  --code-attr: #7aa89f;
+  --code-variable: #e46876;
+  --code-punctuation: #9cabca;
+  --code-literal: #ffa066;
+  --code-tag: #e46876;
+  --code-meta: #7aa89f;
+}
+
+[data-code-theme="kanagawa-dragon"] {
+  --code-bg: #1f1f28;
+  --code-fg: #dcd7ba;
+  --code-comment: #727169;
+  --code-keyword: #957fb8;
+  --code-string: #98bb6c;
+  --code-number: #ffa066;
+  --code-function: #7e9cd8;
+  --code-class: #e6c384;
+  --code-built-in: #7fb4ca;
+  --code-attr: #7aa89f;
+  --code-variable: #e46876;
+  --code-punctuation: #9cabca;
+  --code-literal: #ffa066;
+  --code-tag: #e46876;
+  --code-meta: #658594;
+}
+
 [data-code-block] {
   background: var(--md-codeblock-bg, var(--code-bg));
   color: var(--md-codeblock-color, var(--code-fg));
@@ -475,9 +589,9 @@ body {
   max-height: min(70vh, 42rem);
   min-width: 0;
   overflow-y: auto;
-  border: 1px solid var(--ctp-surface0);
-  background: var(--ctp-base);
-  padding: 0.75rem 0.5rem 1.5rem;
+  border: 0;
+  background: transparent;
+  padding: 0.25rem 0 3rem;
 }
 
 @media (min-width: 1024px) {
@@ -502,12 +616,8 @@ body {
 }
 
 .block-input::placeholder {
-  color: transparent;
-}
-
-.block-editor .group:last-child .block-paragraph .block-input::placeholder,
-.block-input:focus::placeholder {
-  color: var(--ctp-overlay0);
+  color: var(--ctp-overlay1);
+  opacity: 1;
 }
 
 .block-paragraph .block-input {
@@ -578,4 +688,28 @@ body {
     calc(100% - 8px) 100%,
     0 100%
   );
+}
+
+.tag-chip {
+  color: var(--tag-accent);
+  background-color: color-mix(in srgb, var(--tag-accent) 22%, transparent);
+}
+
+.tag-chip:hover,
+.tag-chip:focus-within {
+  background-color: color-mix(in srgb, var(--tag-accent) 34%, transparent);
+}
+
+@keyframes chat-think-pulse {
+  0%,
+  100% {
+    opacity: 0.42;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.chat-think {
+  animation: chat-think-pulse 1.2s ease-in-out infinite;
 }

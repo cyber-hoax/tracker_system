@@ -87,7 +87,7 @@ function habitNudge(snapshot: ScheduleSnapshot, stats: WeekStats): string[] {
 }
 
 export async function buildBriefing(moment = new Date()): Promise<Briefing> {
-  const snapshot = currentAndNext(moment);
+  const snapshot = await currentAndNext(moment);
   const stats = await statsForWeek(new Date(snapshot.now));
   const current = snapshot.current;
   const next = snapshot.next;

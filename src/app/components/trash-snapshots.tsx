@@ -6,10 +6,13 @@ import {
   permanentlyDeleteSnapshotAction,
   restoreTrashSnapshotAction,
 } from "@/app/actions/workspace";
+import { formatDateTime12 } from "@/lib/timezone";
 import type { TrashSnapshotListItem } from "@/lib/workspace/snapshots";
 
+const TIMEZONE = "Asia/Kolkata";
+
 function snapshotMeta(snapshot: TrashSnapshotListItem): string {
-  const when = new Date(snapshot.deletedAt).toLocaleString();
+  const when = formatDateTime12(new Date(snapshot.deletedAt), TIMEZONE);
   if (snapshot.kind === "note") return `Note · ${when}`;
   const folders =
     snapshot.folderCount === 1 ? "1 folder" : `${snapshot.folderCount} folders`;

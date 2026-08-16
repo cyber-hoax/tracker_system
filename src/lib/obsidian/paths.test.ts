@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { relativeNotePath, skipVaultFileReason } from "./paths";
+import { relativeNotePath, skipVaultFileReason, suffixedRelativePath } from "./paths";
 
 describe("relativeNotePath", () => {
   it("puts problems under the tracker dir and patterns under Patterns/", () => {
@@ -8,6 +8,20 @@ describe("relativeNotePath", () => {
     );
     expect(relativeNotePath("pattern", "binary search")).toBe(
       "Patterns/binary search.md",
+    );
+  });
+});
+
+describe("suffixedRelativePath", () => {
+  it("keeps the original path for the first copy", () => {
+    expect(suffixedRelativePath("Notion/tracker/Untitled.md", 1)).toBe(
+      "Notion/tracker/Untitled.md",
+    );
+  });
+
+  it("adds a numeric suffix before the extension", () => {
+    expect(suffixedRelativePath("Notion/tracker/Untitled.md", 4)).toBe(
+      "Notion/tracker/Untitled-4.md",
     );
   });
 });

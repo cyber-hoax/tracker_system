@@ -127,9 +127,10 @@ function localIsoSeconds(): string {
   return `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())}T${pad2(now.getHours())}:${pad2(now.getMinutes())}:${pad2(now.getSeconds())}`;
 }
 
-export function buildIcs(): string {
+export async function buildIcs(): Promise<string> {
   const cfg = loadConfig();
-  const routine = loadRoutine();
+  const routine = await loadRoutine();
+  const calendarName = routine.calendar_name?.trim() || cfg.calendarName;
   const events = groupedEvents(routine);
   const planStart = parsePlanStart(cfg.planStart);
   const lines = [
@@ -138,7 +139,7 @@ export function buildIcs(): string {
     "PRODID:-//SDE Routine Tracker//EN",
     "CALSCALE:GREGORIAN",
     "METHOD:PUBLISH",
-    `X-WR-CALNAME:${cfg.calendarName}`,
+    `X-WR-CALNAME:${calendarName}`,
     `X-WR-TIMEZONE:${cfg.timezone}`,
     "BEGIN:VTIMEZONE",
     "TZID:Asia/Kolkata",
@@ -190,9 +191,9 @@ export function buildIcs(): string {
   return `${lines.join("\r\n")}\r\n`;
 }
 
-export function writeIcs(): string {
+export async function writeIcs(): Promise<string> {
   const dest = icsPath();
-  writeFileSync(dest, buildIcs(), "utf8");
+  writeFileSync(dest, await buildIcs(), "utf8");
   return dest;
 }
 
@@ -212,9 +213,12 @@ end tell
 `;
 }
 
-function clearAndCreateScript(events: GroupedCalendarEvent[]): string {
+function clearAndCreateScript(
+  events: GroupedCalendarEvent[],
+  calendarName: string,
+): string {
   const cfg = loadConfig();
-  const safeCal = applescriptEscape(cfg.calendarName);
+  const safeCal = applescriptEscape(calendarName);
   const planStart = parsePlanStart(cfg.planStart);
   const chunks = [
     'tell application "Calendar"',
@@ -315,15 +319,16 @@ async function runOsascript(script: string, timeoutMs: number): Promise<Osascrip
 
 export async function syncCalendar(openIcsFallback = true): Promise<CalendarSyncResult> {
   const cfg = loadConfig();
-  const routine = loadRoutine();
+  const routine = await loadRoutine();
+  const calendarName = routine.calendar_name?.trim() || cfg.calendarName;
   const events = groupedEvents(routine);
-  const ics = writeIcs();
+  const ics = await writeIcs();
   let created = false;
   let method: CalendarSyncResult["method"] = "ics";
   let error = "";
 
-  const ensure = await runOsascript(ensureCalendarScript(cfg.calendarName), 60_000);
-  const create = await runOsascript(clearAndCreateScript(events), 180_000);
+  const ensure = await runOsascript(ensureCalendarScript(calendarName), 60_000);
+  const create = await runOsascript(clearAndCreateScript(events, calendarName), 180_000);
   if (create.returncode === 0) {
     created = true;
     method = "calendar_app";
@@ -348,7 +353,7 @@ export async function syncCalendar(openIcsFallback = true): Promise<CalendarSync
     method,
     ics_path: ics,
     event_count: events.length,
-    calendar_name: cfg.calendarName,
+    calendar_name: calendarName,
     error,
     last_sync: getSetting("last_calendar_sync"),
   };

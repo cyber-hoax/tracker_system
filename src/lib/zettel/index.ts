@@ -23,8 +23,8 @@
  *
  * 4. System defs `notion-id` and `base` stay hidden in the note editor.
  *    `file_path` stores the vault-relative markdown path (Obsidian sync). Search uses `notes.search_vector`
- *    (maintained by DB triggers on title/body/properties). Do not recompute
- *    the vector in app code. Graph edges are `links` rows from
+ *    (FTS, via DB triggers) plus `pg_trgm` on titles for typos and partial tokens.
+ *    Do not recompute the vector in app code. Graph edges are `links` rows from
  *    `syncPropertyLinks` (plus `manual`); do not add a second edge table.
  *
  * 5. Deleting a property_def cascade-deletes values; this module then resyncs
@@ -67,6 +67,7 @@ export {
   parseSearchFilters,
   parseSearchQuery,
   websearchQuery,
+  escapeIlikePattern,
 } from "./query";
 export type { ProblemFilters, SearchQuery } from "./query";
 export { searchNotes } from "./search";

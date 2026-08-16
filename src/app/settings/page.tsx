@@ -12,6 +12,8 @@ import { trackerDirRel, vaultRoot } from "@/lib/obsidian";
 import { listPropertyDefs } from "@/lib/zettel";
 import { asStringArray } from "@/lib/zettel/values";
 import { AppearanceSettings } from "@/app/components/appearance-settings";
+import { LlmSettings } from "@/app/components/llm-settings";
+import { getLlmSettingsView } from "@/app/actions/llm";
 import { getAppName, loadAppearance } from "@/lib/appearance-store";
 import { TrashSnapshots } from "@/app/components/trash-snapshots";
 import { listTrashSnapshots } from "@/lib/workspace/snapshots";
@@ -31,6 +33,7 @@ export default async function SettingsPage() {
   const appearance = loadAppearance();
   const appName = getAppName();
   const snapshots = await listTrashSnapshots();
+  const llm = await getLlmSettingsView();
 
   return (
     <main className="space-y-8">
@@ -45,6 +48,8 @@ export default async function SettingsPage() {
         </p>
         <AppearanceSettings appName={appName} initial={appearance} />
       </section>
+
+      <LlmSettings initial={llm} />
 
       <TrashSnapshots snapshots={snapshots} />
 

@@ -99,7 +99,7 @@ export async function loadReportFacts(startYmd: string, endYmd: string) {
 
 export async function loadReportsPage(tab: ReportTab, date: string) {
   const timeZone = loadConfig().timezone;
-  const routine = loadRoutine();
+  const routine = await loadRoutine();
   const todayYmd = ymdInZone(new Date(), timeZone);
   const range = reportRange(tab, date);
   const facts = await loadReportFacts(range.start, range.end);

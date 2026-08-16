@@ -3,7 +3,7 @@ import { db } from "@/db";
 import { noteProperties, notes, propertyDefs } from "@/db/schema";
 import { PATTERN_PROPERTY_KEY } from "./constants";
 import { propertyConditions } from "./filters";
-import { websearchQuery, type SearchQuery } from "./query";
+import { escapeIlikePattern, websearchQuery, type SearchQuery } from "./query";
 import { noteHref } from "./slug";
 
 export type SearchHit = {
@@ -19,33 +19,60 @@ export type SearchHit = {
   patterns: string[];
 };
 
+function textMatchSql(q: string): SQL {
+  const like = `%${escapeIlikePattern(q)}%`;
+  const fts = sql`${notes.searchVector} @@ websearch_to_tsquery('english', ${q})`;
+  const titleLike = sql`${notes.title} ilike ${like} escape '\\'`;
+  const bodyLike = sql`${notes.body} ilike ${like} escape '\\'`;
+  if (q.length < 3) {
+    return sql`(${fts} or ${titleLike} or ${bodyLike})`;
+  }
+  return sql`(
+    ${fts}
+    or ${titleLike}
+    or ${bodyLike}
+    or word_similarity(${q}, ${notes.title}) > 0.35
+    or similarity(${notes.title}, ${q}) > 0.22
+  )`;
+}
+
+function rankSql(q: string): SQL<number> {
+  const like = `%${escapeIlikePattern(q)}%`;
+  const tsQuery = sql`websearch_to_tsquery('english', ${q})`;
+  return sql<number>`greatest(
+    coalesce(ts_rank_cd(${notes.searchVector}, ${tsQuery}) * 3, 0),
+    similarity(${notes.title}, ${q}),
+    word_similarity(${q}, ${notes.title}),
+    case when ${notes.title} ilike ${like} escape '\\' then 0.55 else 0 end,
+    case when ${notes.body} ilike ${like} escape '\\' then 0.2 else 0 end
+  )`;
+}
+
 export async function searchNotes(query: SearchQuery): Promise<SearchHit[]> {
   const fts = websearchQuery(query.q);
   const extra = await propertyConditions(query);
   if (extra === null) return [];
 
   const conditions: SQL[] = [...extra];
-  if (fts) {
-    conditions.push(
-      sql`${notes.searchVector} @@ websearch_to_tsquery('english', ${fts})`,
-    );
-  }
+  if (fts) conditions.push(textMatchSql(fts));
 
+  const rankExpr = fts ? rankSql(fts) : sql<number | null>`null`;
   const tsQuery = fts
     ? sql`websearch_to_tsquery('english', ${fts})`
     : null;
-
-  const rankExpr = tsQuery
-    ? sql<number>`ts_rank_cd(${notes.searchVector}, ${tsQuery})`
-    : sql<number | null>`null`;
+  const like = fts ? `%${escapeIlikePattern(fts)}%` : null;
 
   const headlineExpr = tsQuery
-    ? sql<string>`ts_headline(
-        'english',
-        ${notes.title} || E'\n' || left(${notes.body}, 800),
-        ${tsQuery},
-        'MaxFragments=1, MaxWords=32, MinWords=9, StartSel=«, StopSel=»'
-      )`
+    ? sql<string>`case
+        when ${notes.searchVector} @@ ${tsQuery} then ts_headline(
+          'english',
+          ${notes.title} || E'\n' || left(${notes.body}, 800),
+          ${tsQuery},
+          'MaxFragments=1, MaxWords=32, MinWords=9, StartSel=«, StopSel=»'
+        )
+        when ${notes.title} ilike ${like} escape '\\' then null
+        else nullif(left(${notes.body}, 160), '')
+      end`
     : sql<string | null>`null`;
 
   const rows = await db

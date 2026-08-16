@@ -69,3 +69,8 @@ export function websearchQuery(q: string | undefined): string | null {
   const trimmed = q?.trim();
   return trimmed ? trimmed : null;
 }
+
+/** Escape `\`, `%`, and `_` so user input is a literal `ILIKE` needle. */
+export function escapeIlikePattern(raw: string): string {
+  return raw.replace(/[\\%_]/g, "\\$&");
+}

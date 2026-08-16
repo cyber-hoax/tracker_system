@@ -48,8 +48,9 @@ export default async function SearchPage({
         </p>
         <h1 className="mt-1 text-2xl text-ctp-text">Search</h1>
         <p className="mt-2 max-w-2xl text-sm text-ctp-subtext0">
-          Full-text uses the database <code>search_vector</code> (title, body,
-          properties). Facets are the same EAV fields as the DSA list.
+          Matches whole words via <code>search_vector</code>, plus fuzzy titles
+          (typos and partial tokens). Facets still use the same EAV fields as
+          the DSA list.
         </p>
       </div>
 
@@ -66,7 +67,7 @@ export default async function SearchPage({
 
       {!active ? (
         <p className="text-sm text-ctp-overlay0">
-          Enter a query or pick a Status, Pattern, Difficulty, or date range.
+          Enter a query — results update as you type. Facets still use Search.
         </p>
       ) : hits.length === 0 ? (
         <p className="text-sm text-ctp-overlay0">No notes match.</p>

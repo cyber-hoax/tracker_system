@@ -3,6 +3,8 @@ export const COLOR_THEMES = [
   "macchiato",
   "frappe",
   "latte",
+  "kanagawa",
+  "kanagawa-dragon",
   "one-dark",
   "github-dark",
 ] as const;
@@ -21,6 +23,8 @@ export type FontTheme = (typeof FONT_THEMES)[number];
 
 export const CODE_THEMES = [
   "mocha",
+  "kanagawa",
+  "kanagawa-dragon",
   "one-dark",
   "github-dark",
   "dracula",
@@ -65,6 +69,8 @@ export const COLOR_THEME_LABELS: Record<ColorTheme, string> = {
   macchiato: "Catppuccin Macchiato",
   frappe: "Catppuccin Frappé",
   latte: "Catppuccin Latte",
+  kanagawa: "Kanagawa Wave",
+  "kanagawa-dragon": "Kanagawa Dragon",
   "one-dark": "One Dark",
   "github-dark": "GitHub Dark",
 };
@@ -79,6 +85,8 @@ export const FONT_THEME_LABELS: Record<FontTheme, string> = {
 
 export const CODE_THEME_LABELS: Record<CodeTheme, string> = {
   mocha: "Catppuccin Mocha",
+  kanagawa: "Kanagawa Wave",
+  "kanagawa-dragon": "Kanagawa Dragon",
   "one-dark": "One Dark",
   "github-dark": "GitHub Dark",
   dracula: "Dracula",

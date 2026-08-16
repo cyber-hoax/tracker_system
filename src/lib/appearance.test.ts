@@ -26,6 +26,21 @@ describe("parseAppearance", () => {
       parseAppearance({ colorTheme: "latte", fontTheme: "serif" }).colorTheme,
     ).toBe("latte");
     expect(parseAppearance({ colorTheme: "solarized" }).colorTheme).toBe("mocha");
+    expect(parseAppearance({ colorTheme: "kanagawa" }).colorTheme).toBe(
+      "kanagawa",
+    );
+    expect(parseAppearance({ codeTheme: "kanagawa" }).codeTheme).toBe(
+      "kanagawa",
+    );
+    expect(
+      parseAppearance({
+        colorTheme: "kanagawa-dragon",
+        codeTheme: "kanagawa-dragon",
+      }).colorTheme,
+    ).toBe("kanagawa-dragon");
+    expect(
+      parseAppearance({ codeTheme: "kanagawa-dragon" }).codeTheme,
+    ).toBe("kanagawa-dragon");
   });
 });
 

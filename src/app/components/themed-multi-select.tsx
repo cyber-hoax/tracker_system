@@ -5,6 +5,8 @@ import {
   filterMultiSelectOptions,
   removeMultiSelectValue,
 } from "@/lib/ui/multi-select";
+import { tagAccent, tagChipStyle } from "@/lib/ui/tag-color";
+import { X } from "@phosphor-icons/react";
 import Link from "next/link";
 import { createPortal } from "react-dom";
 import {
@@ -165,12 +167,18 @@ export function ThemedMultiSelect({
                       event.preventDefault();
                       commit(item);
                     }}
-                    className={`w-full truncate px-2.5 py-1.5 text-left text-sm ${
+                    className={`flex w-full items-center gap-2 truncate px-2.5 py-1.5 text-left text-sm ${
                       index === highlight
-                        ? "bg-ctp-surface0 text-ctp-mauve"
+                        ? "bg-ctp-surface0 text-ctp-text"
                         : "text-ctp-text"
                     }`}
                   >
+                    <span
+                      className="h-2 w-2 shrink-0 rounded-full"
+                      style={{
+                        backgroundColor: `var(--ctp-${tagAccent(item)})`,
+                      }}
+                    />
                     {item}
                   </button>
                 </li>
@@ -192,12 +200,13 @@ export function ThemedMultiSelect({
         {values.map((item) => (
           <span
             key={item}
-            className="inline-flex max-w-full items-center gap-1 rounded-sm bg-ctp-mauve/20 px-1.5 py-0.5 font-mono text-xs text-ctp-mauve"
+            className="tag-chip inline-flex max-w-full items-center gap-1 rounded-sm px-1.5 py-0.5 font-mono text-xs"
+            style={tagChipStyle(item)}
           >
             {getHref?.(item) ? (
               <Link
                 href={getHref(item)!}
-                className="min-w-0 truncate hover:text-ctp-lavender"
+                className="min-w-0 truncate hover:opacity-80"
                 onClick={(event) => event.stopPropagation()}
               >
                 {item}
@@ -213,9 +222,9 @@ export function ThemedMultiSelect({
                 event.stopPropagation();
                 onChange(removeMultiSelectValue(values, item));
               }}
-              className="text-ctp-overlay0 hover:text-ctp-red"
+              className="flex h-4 w-4 items-center justify-center opacity-60 hover:text-ctp-red hover:opacity-100"
             >
-              ×
+              <X size={12} weight="bold" />
             </button>
           </span>
         ))}

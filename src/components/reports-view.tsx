@@ -199,7 +199,13 @@ function DayBreakdown({
   );
 }
 
-function WeekView({ report }: { report: WeekReport }) {
+function WeekView({
+  report,
+  todayYmd,
+}: {
+  report: WeekReport;
+  todayYmd: string;
+}) {
   const maxMinutes = Math.max(1, ...report.dayBars.map((bar) => bar.minutes));
   const hourRows = [
     ...HOUR_ORDER.filter((key) => report.hours[key]),
@@ -213,8 +219,12 @@ function WeekView({ report }: { report: WeekReport }) {
       </h2>
 
       <section className={`${panelClass} overflow-visible`}>
-        <h3 className="mb-4 text-lg font-medium">Questions per day</h3>
-        <ContributionGraph days={report.contributionDays} layout="row" />
+        <h3 className="mb-1 text-lg font-medium">Questions per day</h3>
+        <p className="mb-4 text-sm text-ctp-subtext0">
+          Color is how many questions you solved. The teal bar means walk,
+          reading, or study was logged.
+        </p>
+        <ContributionGraph days={report.contributionDays} layout="row" todayYmd={todayYmd} />
       </section>
 
       <section className={panelClass}>
@@ -332,7 +342,13 @@ function WeekView({ report }: { report: WeekReport }) {
   );
 }
 
-function MonthView({ report }: { report: MonthReport }) {
+function MonthView({
+  report,
+  todayYmd,
+}: {
+  report: MonthReport;
+  todayYmd: string;
+}) {
   const mix = ["easy", "medium", "hard"].filter(
     (key) => report.difficultyMix[key],
   );
@@ -374,8 +390,16 @@ function MonthView({ report }: { report: MonthReport }) {
       </div>
 
       <section className={`${panelClass} overflow-visible`}>
-        <h3 className="mb-4 text-lg font-medium">Questions per day</h3>
-        <ContributionGraph days={report.contributionDays} layout="month" />
+        <h3 className="mb-1 text-lg font-medium">Questions per day</h3>
+        <p className="mb-4 text-sm text-ctp-subtext0">
+          Color is how many questions you solved. The teal bar means walk,
+          reading, or study was logged.
+        </p>
+        <ContributionGraph
+          days={report.contributionDays}
+          layout="month"
+          todayYmd={todayYmd}
+        />
       </section>
 
       <section className={panelClass}>
@@ -442,29 +466,34 @@ function CalendarView({
     <div className="space-y-6">
       <h2 className="text-2xl text-ctp-text">{year.year}</h2>
       <section className={`${panelClass} overflow-visible`}>
-        <h3 className="mb-4 text-lg font-medium">Questions per day</h3>
+        <h3 className="mb-1 text-lg font-medium">Questions per day</h3>
+        <p className="mb-4 text-sm text-ctp-subtext0">
+          Color is how many questions you solved. The teal bar means walk,
+          reading, or study was logged.
+        </p>
         <ContributionGraph
           days={year.days}
           layout="year"
           hrefTab="calendar"
+          todayYmd={todayYmd}
         />
       </section>
-      <div className="flex flex-wrap gap-4 font-mono text-xs text-ctp-overlay0">
-        <span className="inline-flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-full bg-ctp-peach" /> DSA
-        </span>
-        <span className="inline-flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-full bg-ctp-green" /> Walk
-        </span>
-        <span className="inline-flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-full bg-ctp-blue" /> Reading
-        </span>
-        <span className="inline-flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-full bg-ctp-mauve" /> Other
-        </span>
-      </div>
       <section className={panelClass}>
         <h3 className="mb-4 text-lg font-medium">{monthTitle(grid.monthStart)}</h3>
+        <div className="mb-3 flex flex-wrap gap-4 font-mono text-xs text-ctp-subtext0">
+          <span className="inline-flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-ctp-peach" /> DSA
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-ctp-green" /> Walk
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-ctp-blue" /> Reading
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-ctp-mauve" /> Other
+          </span>
+        </div>
         <div className="overflow-x-auto">
           <div className="grid min-w-[720px] grid-cols-7 gap-px bg-ctp-surface0">
             {WEEKDAYS.map((label) => (
@@ -559,8 +588,12 @@ export function ReportsView({
       {tab === "day" && day ? (
         <DayBreakdown report={day} timeZone={timeZone} />
       ) : null}
-      {tab === "week" && week ? <WeekView report={week} /> : null}
-      {tab === "month" && month ? <MonthView report={month} /> : null}
+      {tab === "week" && week ? (
+        <WeekView report={week} todayYmd={todayYmd} />
+      ) : null}
+      {tab === "month" && month ? (
+        <MonthView report={month} todayYmd={todayYmd} />
+      ) : null}
       {tab === "calendar" && calendar && year && day ? (
         <CalendarView
           year={year}

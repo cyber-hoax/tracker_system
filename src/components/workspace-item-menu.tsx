@@ -1,5 +1,15 @@
 "use client";
 
+import {
+  ArrowRight,
+  CaretRight,
+  DotsThree,
+  File,
+  FolderSimple,
+  PencilSimple,
+  Trash,
+} from "@phosphor-icons/react";
+import { ChromeIcon } from "@/components/chrome-icon";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
@@ -15,86 +25,8 @@ export type WorkspaceMenuState = {
 
 export type MoveTargetOption = { id: string | null; path: string };
 
-function IconPlus() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden>
-      <path
-        d="M8 3v10M3 8h10"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
-function IconFolder() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden>
-      <path
-        d="M2.5 13V5.5A1.5 1.5 0 0 1 4 4h2.2L8 5.8H12a1.5 1.5 0 0 1 1.5 1.5V13A1.5 1.5 0 0 1 12 14.5H4A1.5 1.5 0 0 1 2.5 13Z"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.3"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function IconRename() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden>
-      <path
-        d="M10.2 3.4 12.6 5.8 5.8 12.6H3.4v-2.4L10.2 3.4Z"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.3"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function IconMove() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden>
-      <path
-        d="M3 8h10M9 4l4 4-4 4"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function IconTrash() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden>
-      <path
-        d="M3.5 4.5h9M6 4.5V3h4v1.5M5 6.5l.4 6.2h5.2L11 6.5"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.3"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
 export function EllipsisIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden>
-      <circle cx="3.5" cy="8" r="1.4" fill="currentColor" />
-      <circle cx="8" cy="8" r="1.4" fill="currentColor" />
-      <circle cx="12.5" cy="8" r="1.4" fill="currentColor" />
-    </svg>
-  );
+  return <ChromeIcon icon={DotsThree} />;
 }
 
 export function WorkspaceItemMenu({
@@ -164,7 +96,7 @@ export function WorkspaceItemMenu({
   if (!mounted || !menu) return null;
 
   const itemClass =
-    "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[13px] text-ctp-text hover:bg-ctp-surface0";
+    "flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-[13px] text-ctp-text hover:bg-ctp-surface0";
 
   return createPortal(
     <div
@@ -182,9 +114,7 @@ export function WorkspaceItemMenu({
           onClose();
         }}
       >
-        <span className="text-ctp-overlay0">
-          <IconPlus />
-        </span>
+        <ChromeIcon icon={File} className="text-ctp-overlay1" />
         New file
       </button>
       <button
@@ -196,9 +126,7 @@ export function WorkspaceItemMenu({
           onClose();
         }}
       >
-        <span className="text-ctp-overlay0">
-          <IconFolder />
-        </span>
+        <ChromeIcon icon={FolderSimple} className="text-ctp-overlay1" />
         New folder
       </button>
       <button
@@ -210,9 +138,7 @@ export function WorkspaceItemMenu({
           onClose();
         }}
       >
-        <span className="text-ctp-overlay0">
-          <IconRename />
-        </span>
+        <ChromeIcon icon={PencilSimple} className="text-ctp-overlay1" />
         Rename
       </button>
       <button
@@ -221,11 +147,13 @@ export function WorkspaceItemMenu({
         className={itemClass}
         onClick={() => setMoveOpen((value) => !value)}
       >
-        <span className="text-ctp-overlay0">
-          <IconMove />
-        </span>
+        <ChromeIcon icon={ArrowRight} className="text-ctp-overlay1" />
         <span className="flex-1">Move to</span>
-        <span className="text-[10px] text-ctp-overlay0">{moveOpen ? "▾" : "▸"}</span>
+        <ChromeIcon
+          icon={CaretRight}
+          size={16}
+          className={`text-ctp-overlay1 transition-transform ${moveOpen ? "rotate-90" : ""}`}
+        />
       </button>
       {moveOpen ? (
         <div className="my-1 max-h-48 overflow-y-auto rounded-md border border-ctp-surface0 bg-ctp-mantle py-1">
@@ -255,13 +183,13 @@ export function WorkspaceItemMenu({
       <button
         type="button"
         role="menuitem"
-        className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[13px] text-ctp-red hover:bg-ctp-surface0"
+        className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-[13px] text-ctp-red hover:bg-ctp-surface0"
         onClick={() => {
           onTrash(menu.target);
           onClose();
         }}
       >
-        <IconTrash />
+        <ChromeIcon icon={Trash} />
         Move to trash
       </button>
     </div>,

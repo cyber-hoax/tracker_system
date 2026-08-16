@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { LiveSearchQuery } from "@/app/components/live-search-query";
 import type { ProblemFilters } from "@/lib/zettel";
 
 export function PropertyFilterForm({
@@ -42,12 +43,9 @@ export function PropertyFilterForm({
           <span className="font-mono text-[10px] uppercase tracking-wide text-ctp-overlay0">
             Query
           </span>
-          <input
-            type="search"
-            name="q"
-            defaultValue={q ?? ""}
-            placeholder="Full-text across title, body, and properties"
-            className="w-full border border-ctp-surface1 bg-ctp-mantle px-2 py-1.5 text-sm"
+          <LiveSearchQuery
+            defaultValue={q}
+            placeholder="Titles, body, typos — e.g. bin sea or two ptrs"
           />
         </label>
       ) : null}

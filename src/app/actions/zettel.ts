@@ -62,12 +62,12 @@ export async function createNoteAction(formData: FormData) {
 export async function updateNoteAction(
   noteId: string,
   patch: { title?: string; body?: string },
-): Promise<{ ok: true } | { ok: false; error: string }> {
+): Promise<{ ok: true; href: string } | { ok: false; error: string }> {
   try {
-    await updateNote(noteId, patch);
+    const updated = await updateNote(noteId, patch);
     await persistVault(noteId);
     revalidateNotes();
-    return { ok: true };
+    return { ok: true, href: noteHref(updated.type, updated.slug) };
   } catch (error) {
     return {
       ok: false,

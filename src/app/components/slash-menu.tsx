@@ -1,11 +1,35 @@
 "use client";
 
 import { createPortal } from "react-dom";
-import { useLayoutEffect, useRef, type ReactNode } from "react";
+import { useLayoutEffect, useRef } from "react";
+import {
+  CheckSquare,
+  Code,
+  ListBullets,
+  ListNumbers,
+  Minus,
+  Quotes,
+  TextHOne,
+  TextHThree,
+  TextHTwo,
+  type Icon,
+} from "@phosphor-icons/react";
 import {
   filterSlashCommands,
   type SlashCommand,
 } from "@/lib/editor/slash";
+
+const SLASH_ICONS: Record<string, Icon> = {
+  todo: CheckSquare,
+  bullet: ListBullets,
+  numbered: ListNumbers,
+  heading1: TextHOne,
+  heading2: TextHTwo,
+  heading3: TextHThree,
+  quote: Quotes,
+  divider: Minus,
+  code: Code,
+};
 
 export function SlashMenu({
   anchorId,
@@ -76,7 +100,7 @@ export function SlashMenu({
                   index === highlighted ? "bg-ctp-surface0" : "bg-transparent"
                 }`}
               >
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded border border-ctp-surface1 bg-ctp-mantle text-ctp-subtext0">
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md border border-ctp-surface1 bg-ctp-mantle text-ctp-subtext0">
                   <SlashIcon id={item.id} />
                 </span>
                 <span>
@@ -96,42 +120,7 @@ export function SlashMenu({
 }
 
 function SlashIcon({ id }: { id: string }) {
-  const icons: Record<string, ReactNode> = {
-    todo: (
-      <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
-        <rect x="3" y="3" width="12" height="12" rx="2" fill="none" stroke="currentColor" strokeWidth="1.5" />
-        <path d="M5.5 9.5 8 12l4.5-5.5" fill="none" stroke="currentColor" strokeWidth="1.5" />
-      </svg>
-    ),
-    bullet: (
-      <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
-        <circle cx="5" cy="5" r="1.2" fill="currentColor" />
-        <circle cx="5" cy="9" r="1.2" fill="currentColor" />
-        <circle cx="5" cy="13" r="1.2" fill="currentColor" />
-        <rect x="8" y="4" width="7" height="2" rx="0.5" fill="currentColor" />
-        <rect x="8" y="8" width="7" height="2" rx="0.5" fill="currentColor" />
-        <rect x="8" y="12" width="7" height="2" rx="0.5" fill="currentColor" />
-      </svg>
-    ),
-    numbered: (
-      <span className="font-mono text-xs leading-none">
-        1.
-        <br />
-        2.
-        <br />
-        3.
-      </span>
-    ),
-    heading1: <span className="font-serif text-lg font-semibold">H1</span>,
-    heading2: <span className="font-serif text-base font-semibold">H2</span>,
-    heading3: <span className="font-serif text-sm font-semibold">H3</span>,
-    quote: <span className="font-serif text-xl leading-none">“</span>,
-    divider: (
-      <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
-        <rect x="3" y="8.25" width="12" height="1.5" fill="currentColor" />
-      </svg>
-    ),
-    code: <span className="font-mono text-xs">&lt;/&gt;</span>,
-  };
-  return icons[id] ?? <span>/</span>;
+  const Icon = SLASH_ICONS[id];
+  if (!Icon) return null;
+  return <Icon size={22} weight="bold" />;
 }

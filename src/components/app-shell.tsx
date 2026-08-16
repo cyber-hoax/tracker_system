@@ -17,11 +17,16 @@ export function AppShell({
 }) {
   const pathname = usePathname();
   const notePage = isNoteRoute(pathname);
+  const chatPage = pathname === "/chat";
 
   return (
     <div className="flex h-screen overflow-hidden bg-ctp-crust text-ctp-text">
       <AppSidebar appName={appName} tree={tree} />
-      {notePage ? (
+      {chatPage ? (
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+          {children}
+        </div>
+      ) : notePage ? (
         <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto lg:contents">
           {children}
         </div>

@@ -34,6 +34,19 @@ export function relativeNotePath(type: NoteType, title: string): string {
   return `${trackerDirRel()}/${fileName}`;
 }
 
+/** `Untitled.md` → `Untitled-2.md` when `n >= 2`. */
+export function suffixedRelativePath(relativePath: string, n: number): string {
+  const posix = toPosix(relativePath);
+  if (n < 2) return posix;
+  const lastSlash = posix.lastIndexOf("/");
+  const dir = lastSlash >= 0 ? posix.slice(0, lastSlash + 1) : "";
+  const file = lastSlash >= 0 ? posix.slice(lastSlash + 1) : posix;
+  const md = file.toLowerCase().endsWith(".md");
+  const stem = md ? file.slice(0, -3) : file;
+  const ext = md ? ".md" : "";
+  return `${dir}${stem}-${n}${ext}`;
+}
+
 export function absoluteVaultPath(relativePath: string): string {
   const root = vaultRoot();
   if (!root) {

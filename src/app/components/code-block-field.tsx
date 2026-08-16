@@ -24,6 +24,7 @@ export function CodeBlockField({
   onCodeThemeChange,
   onKeyDown,
   textareaRef,
+  showTheme = true,
 }: {
   id: string;
   text: string;
@@ -34,6 +35,7 @@ export function CodeBlockField({
   onCodeThemeChange: (theme: CodeTheme) => void;
   onKeyDown: (event: KeyboardEvent<HTMLTextAreaElement>) => void;
   textareaRef: (el: HTMLTextAreaElement | null) => void;
+  showTheme?: boolean;
 }) {
   const area = useRef<HTMLTextAreaElement | null>(null);
   const pre = useRef<HTMLPreElement | null>(null);
@@ -48,14 +50,14 @@ export function CodeBlockField({
   const html = highlightCode(text, language);
 
   return (
-    <div data-code-block className="overflow-hidden rounded-md border border-ctp-surface0">
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-ctp-surface0 px-2 py-1">
+    <div data-code-block className="overflow-hidden rounded-md bg-ctp-mantle/80">
+      <div className="flex flex-wrap items-center justify-between gap-2 px-2 py-1">
         <label className="flex items-center gap-2 font-mono text-[10px] uppercase text-ctp-overlay0">
           Language
           <select
             value={language}
             onChange={(event) => onLanguageChange(event.target.value)}
-            className="border border-ctp-surface1 bg-ctp-mantle px-1 py-0.5 font-mono text-[11px] normal-case text-ctp-text"
+            className="border-0 bg-transparent px-1 py-0.5 font-mono text-[11px] normal-case text-ctp-text outline-none"
           >
             {CODE_LANGUAGES.map((item) => (
               <option key={item.id || "plain"} value={item.id}>
@@ -68,26 +70,28 @@ export function CodeBlockField({
             ) : null}
           </select>
         </label>
-        <label className="flex items-center gap-2 font-mono text-[10px] uppercase text-ctp-overlay0">
-          Theme
-          <select
-            value={codeTheme}
-            onChange={(event) => {
-              const next = event.target.value;
-              if (!isCodeTheme(next)) return;
-              document.documentElement.setAttribute("data-code-theme", next);
-              onCodeThemeChange(next);
-              void updateAppearanceAction({ codeTheme: next });
-            }}
-            className="border border-ctp-surface1 bg-ctp-mantle px-1 py-0.5 font-mono text-[11px] normal-case text-ctp-text"
-          >
-            {CODE_THEMES.map((theme) => (
-              <option key={theme} value={theme}>
-                {CODE_THEME_LABELS[theme]}
-              </option>
-            ))}
-          </select>
-        </label>
+        {showTheme ? (
+          <label className="flex items-center gap-2 font-mono text-[10px] uppercase text-ctp-overlay0">
+            Theme
+            <select
+              value={codeTheme}
+              onChange={(event) => {
+                const next = event.target.value;
+                if (!isCodeTheme(next)) return;
+                document.documentElement.setAttribute("data-code-theme", next);
+                onCodeThemeChange(next);
+                void updateAppearanceAction({ codeTheme: next });
+              }}
+              className="border-0 bg-transparent px-1 py-0.5 font-mono text-[11px] normal-case text-ctp-text outline-none"
+            >
+              {CODE_THEMES.map((theme) => (
+                <option key={theme} value={theme}>
+                  {CODE_THEME_LABELS[theme]}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
       </div>
       <div className="relative">
         <pre

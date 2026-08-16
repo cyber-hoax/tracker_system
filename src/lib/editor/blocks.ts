@@ -53,6 +53,30 @@ export function collapseConsecutiveEmptyParagraphs(
   return next.length > 0 ? next : [emptyBlock("paragraph")];
 }
 
+/** Leave a blank paragraph after every code block and at the end of the note. */
+export function ensureEditableSurface(
+  blocks: EditorBlock[],
+  createId: IdFactory = createBlockId,
+): EditorBlock[] {
+  const source = blocks.length > 0 ? blocks : [emptyBlock("paragraph", createId)];
+  const next: EditorBlock[] = [];
+  for (let i = 0; i < source.length; i += 1) {
+    const block = source[i];
+    next.push(block);
+    if (block.type === "code") {
+      const following = source[i + 1];
+      if (!following || following.type !== "paragraph") {
+        next.push(emptyBlock("paragraph", createId));
+      }
+    }
+  }
+  const last = next[next.length - 1];
+  if (!last || last.type !== "paragraph") {
+    next.push(emptyBlock("paragraph", createId));
+  }
+  return next;
+}
+
 const LIST_TYPES = new Set<BlockType>(["bullet", "numbered", "todo"]);
 
 function isList(type: BlockType): boolean {
@@ -208,7 +232,11 @@ export function serializeBlocksToMarkdown(blocks: EditorBlock[]): string {
   let numberedIndex = 0;
 
   for (const block of blocks) {
-    if (block.type === "paragraph" && block.text.trim() === "") continue;
+    if (block.type === "paragraph" && block.text.trim() === "") {
+      parts.push("");
+      prev = block;
+      continue;
+    }
     if (block.type === "numbered") numberedIndex += 1;
     else numberedIndex = 0;
     if (prev && !(isList(prev.type) && isList(block.type))) {
@@ -218,7 +246,7 @@ export function serializeBlocksToMarkdown(blocks: EditorBlock[]): string {
     prev = block;
   }
 
-  return parts.join("\n");
+  return parts.join("\n").replace(/\n+$/, "");
 }
 
 export function insertBlockAfter(
@@ -228,11 +256,7 @@ export function insertBlockAfter(
   createId: IdFactory = createBlockId,
 ): EditorBlock[] {
   const next = emptyBlock(type, createId);
-  return collapseConsecutiveEmptyParagraphs([
-    ...blocks.slice(0, index + 1),
-    next,
-    ...blocks.slice(index + 1),
-  ]);
+  return [...blocks.slice(0, index + 1), next, ...blocks.slice(index + 1)];
 }
 
 export function splitBlockAt(
@@ -276,7 +300,7 @@ export function handleEnter(
     return insertBlockAfter(blocks, index, "paragraph", createId);
   }
   if (isEmptyParagraph(block)) {
-    return collapseConsecutiveEmptyParagraphs(blocks);
+    return insertBlockAfter(blocks, index, "paragraph", createId);
   }
   const exits =
     (isList(block.type) || block.type === "quote") &&
@@ -291,14 +315,10 @@ export function handleEnter(
   }
   const split = splitBlockAt(blocks, index, cursor, createId);
   const first = split[index];
-  // Enter at the start of a block must not leave an empty paragraph above.
   if (first && isEmptyParagraph(first) && split[index + 1]) {
-    return collapseConsecutiveEmptyParagraphs([
-      ...split.slice(0, index),
-      ...split.slice(index + 1),
-    ]);
+    return [...split.slice(0, index), ...split.slice(index + 1)];
   }
-  return collapseConsecutiveEmptyParagraphs(split);
+  return split;
 }
 
 export function mergeWithPrevious(

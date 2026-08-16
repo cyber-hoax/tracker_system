@@ -4,8 +4,8 @@ import { CodeBlockField } from "@/app/components/code-block-field";
 import { SlashMenu } from "@/app/components/slash-menu";
 import { type CodeTheme } from "@/lib/appearance";
 import {
-  collapseConsecutiveEmptyParagraphs,
   emptyBlock,
+  ensureEditableSurface,
   handleEnter,
   insertBlockAfter,
   mergeWithPrevious,
@@ -21,6 +21,7 @@ import {
   filterSlashCommands,
   type SlashCommand,
 } from "@/lib/editor/slash";
+import { Plus } from "@phosphor-icons/react";
 import {
   useLayoutEffect,
   useRef,
@@ -39,9 +40,13 @@ export function BlockEditor({
   onMarkdownChange: (markdown: string) => void;
   onRequestSave: (markdown: string) => void;
 }) {
-  const [blocks, setBlocks] = useState(() =>
-    parseMarkdownToBlocks(initialMarkdown, sequentialIds()),
-  );
+  const [blocks, setBlocks] = useState(() => {
+    const createId = sequentialIds();
+    return ensureEditableSurface(
+      parseMarkdownToBlocks(initialMarkdown, createId),
+      createId,
+    );
+  });
   const [slashHighlight, setSlashHighlight] = useState(0);
   const [slashDismissed, setSlashDismissed] = useState(false);
   const [codeTheme, setCodeTheme] = useState(initialCodeTheme);
@@ -55,24 +60,32 @@ export function BlockEditor({
   const slashItems = slashOpen ? filterSlashCommands(query) : [];
 
   function commit(next: EditorBlock[]) {
-    const collapsed = collapseConsecutiveEmptyParagraphs(next);
-    setBlocks(collapsed);
-    onMarkdownChange(serializeBlocksToMarkdown(collapsed));
+    const prepared = ensureEditableSurface(next);
+    setBlocks(prepared);
+    onMarkdownChange(serializeBlocksToMarkdown(prepared));
   }
 
   useLayoutEffect(() => {
     const pending = pendingFocus.current;
     if (!pending) return;
     pendingFocus.current = null;
-    const el = areas.current.get(pending.id);
-    if (!el) return;
-    el.focus();
-    const cursor = Math.min(pending.cursor, el.value.length);
-    el.setSelectionRange(cursor, cursor);
+    focusNow(pending.id, pending.cursor);
   }, [blocks]);
+
+  function focusNow(id: string, cursor: number) {
+    const el = areas.current.get(id);
+    if (!el) {
+      pendingFocus.current = { id, cursor };
+      return;
+    }
+    el.focus();
+    const pos = Math.min(cursor, el.value.length);
+    el.setSelectionRange(pos, pos);
+  }
 
   function focusBlock(id: string, cursor: number) {
     pendingFocus.current = { id, cursor };
+    focusNow(id, cursor);
   }
 
   function updateBlock(index: number, patch: Partial<EditorBlock>) {
@@ -140,8 +153,15 @@ export function BlockEditor({
 
     if (event.key === "Enter" && !event.shiftKey) {
       if (block.type === "code") {
-        if (event.metaKey || event.ctrlKey) {
+        const cursor = event.currentTarget.selectionStart ?? block.text.length;
+        const atEnd = cursor === block.text.length;
+        if (atEnd || event.metaKey || event.ctrlKey) {
           event.preventDefault();
+          const existing = blocks[index + 1];
+          if (existing?.type === "paragraph") {
+            focusBlock(existing.id, existing.text.length);
+            return;
+          }
           const next = insertBlockAfter(blocks, index, "paragraph");
           focusBlock(next[index + 1].id, 0);
           commit(next);
@@ -196,6 +216,14 @@ export function BlockEditor({
   return (
     <div
       className="markdown block-editor min-h-0 flex-1 space-y-0.5"
+      onMouseDown={(event) => {
+        const target = event.target as HTMLElement;
+        if (target.closest("textarea, select, button, input, a")) return;
+        event.preventDefault();
+        const last = blocks[blocks.length - 1];
+        if (!last) return;
+        requestAnimationFrame(() => focusNow(last.id, last.text.length));
+      }}
       onBlur={(event) => {
         const next = event.relatedTarget;
         if (next instanceof Node && event.currentTarget.contains(next)) return;
@@ -208,13 +236,14 @@ export function BlockEditor({
             type="button"
             aria-label="Insert block"
             onClick={() => insertAfter(index)}
-            className="mt-1 w-5 shrink-0 font-mono text-sm text-ctp-overlay0 opacity-0 hover:text-ctp-text group-hover:opacity-100"
+            className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded text-ctp-overlay0 opacity-0 hover:bg-ctp-surface0 hover:text-ctp-text group-hover:opacity-100"
           >
-            +
+            <Plus size={16} weight="bold" />
           </button>
           <BlockRow
             block={block}
             index={index}
+            afterCode={blocks[index - 1]?.type === "code"}
             blocks={blocks}
             onKeyDown={(event) => onKeyDown(index, event)}
             onTextChange={(text) => updateBlock(index, { text })}
@@ -225,6 +254,10 @@ export function BlockEditor({
             onInsertAfter={() => insertAfter(index)}
             codeTheme={codeTheme}
             onCodeThemeChange={setCodeTheme}
+            showCodeTheme={
+              block.type === "code" &&
+              blocks.findIndex((item) => item.type === "code") === index
+            }
             textareaRef={(el) => {
               if (el) areas.current.set(block.id, el);
               else areas.current.delete(block.id);
@@ -248,6 +281,7 @@ export function BlockEditor({
 function BlockRow({
   block,
   index,
+  afterCode,
   blocks,
   onKeyDown,
   onTextChange,
@@ -256,10 +290,12 @@ function BlockRow({
   onInsertAfter,
   codeTheme,
   onCodeThemeChange,
+  showCodeTheme,
   textareaRef,
 }: {
   block: EditorBlock;
   index: number;
+  afterCode: boolean;
   blocks: EditorBlock[];
   onKeyDown: (event: KeyboardEvent<HTMLTextAreaElement>) => void;
   onTextChange: (text: string) => void;
@@ -268,6 +304,7 @@ function BlockRow({
   onInsertAfter: () => void;
   codeTheme: CodeTheme;
   onCodeThemeChange: (theme: CodeTheme) => void;
+  showCodeTheme: boolean;
   textareaRef: (el: HTMLTextAreaElement | null) => void;
 }) {
   if (block.type === "divider") {
@@ -298,6 +335,7 @@ function BlockRow({
           onTextChange={onTextChange}
           onLanguageChange={onLanguageChange}
           onCodeThemeChange={onCodeThemeChange}
+          showTheme={showCodeTheme}
           onKeyDown={onKeyDown}
           textareaRef={textareaRef}
         />
@@ -307,7 +345,9 @@ function BlockRow({
 
   const placeholder =
     block.type === "paragraph"
-      ? "Type '/' for commands"
+      ? index === 0 && blocks.length === 1
+        ? "Type '/' for commands"
+        : ""
       : block.type === "heading1"
         ? "Heading 1"
         : block.type === "heading2"
@@ -319,7 +359,11 @@ function BlockRow({
               : "List";
 
   return (
-    <div className={`flex min-w-0 flex-1 items-start gap-2 ${blockClass(block.type)}`}>
+    <div
+      className={`flex min-w-0 flex-1 items-start gap-2 ${blockClass(block.type)} ${
+        afterCode ? "pt-4" : ""
+      }`}
+    >
       {block.type === "todo" ? (
         <input
           type="checkbox"
@@ -343,7 +387,7 @@ function BlockRow({
         id={block.id}
         value={block.text}
         placeholder={placeholder}
-        className="block-input min-w-0 flex-1"
+        className="block-input min-w-0 flex-1 caret-ctp-lavender placeholder:text-ctp-overlay1"
         onChange={onTextChange}
         onKeyDown={onKeyDown}
         textareaRef={textareaRef}
@@ -394,7 +438,7 @@ function GrowTextarea({
     const el = inner.current;
     if (!el) return;
     el.style.height = "0px";
-    el.style.height = `${el.scrollHeight}px`;
+    el.style.height = `${Math.max(el.scrollHeight, 28)}px`;
   }, [value]);
 
   return (

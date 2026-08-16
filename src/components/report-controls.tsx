@@ -1,5 +1,6 @@
 "use client";
 
+import { CaretLeft, CaretRight } from "@phosphor-icons/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -50,10 +51,10 @@ export function ReportControls({
       <div className="flex flex-wrap items-center gap-2">
         <Link
           href={reportsHref(tab, prev)}
-          className="rounded-full border border-ctp-surface1 px-3 py-1.5 font-mono text-xs text-ctp-subtext0 hover:text-ctp-text"
+          className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-ctp-surface1 text-ctp-subtext0 hover:text-ctp-text"
           aria-label={tab === "calendar" ? "Previous year" : `Previous ${tab}`}
         >
-          ←
+          <CaretLeft size={20} weight="bold" />
         </Link>
         <label className="font-mono text-xs text-ctp-overlay0">
           {tab === "calendar" ? "Year" : "Date"}
@@ -70,10 +71,10 @@ export function ReportControls({
         </label>
         <Link
           href={reportsHref(tab, next)}
-          className="rounded-full border border-ctp-surface1 px-3 py-1.5 font-mono text-xs text-ctp-subtext0 hover:text-ctp-text"
+          className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-ctp-surface1 text-ctp-subtext0 hover:text-ctp-text"
           aria-label={tab === "calendar" ? "Next year" : `Next ${tab}`}
         >
-          →
+          <CaretRight size={20} weight="bold" />
         </Link>
       </div>
     </div>

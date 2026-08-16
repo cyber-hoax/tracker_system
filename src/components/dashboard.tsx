@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
+import { CalendarSyncButton } from "@/app/components/calendar-sync-button";
 import {
   formatClock12,
   formatDateTime12,
@@ -107,9 +109,6 @@ export function Dashboard({ initialBriefing, initialRecent }: DashboardProps) {
   const [logError, setLogError] = useState(false);
   const [reviewStatus, setReviewStatus] = useState("");
   const [reviewError, setReviewError] = useState(false);
-  const [calendarStatus, setCalendarStatus] = useState("");
-  const [calendarError, setCalendarError] = useState(false);
-  const [calendarBusy, setCalendarBusy] = useState(false);
   const logFormRef = useRef<HTMLFormElement>(null);
   const reviewHydrated = useRef(false);
 
@@ -541,53 +540,15 @@ export function Dashboard({ initialBriefing, initialRecent }: DashboardProps) {
         <div>
           <h3 className="text-xl font-medium">Apple Calendar</h3>
           <p className="mt-2 mb-0 leading-relaxed text-ctp-overlay0">
-            Creates a dedicated “SDE Prep” calendar with recurring study, dinner, walk, and
-            reading blocks. Work hours are left off so the calendar stays readable.
+            Recurring study, dinner, walk, and reading blocks go into a dedicated
+            calendar. Edit the week on{" "}
+            <Link href="/routine" className="text-ctp-mauve hover:underline">
+              Routine
+            </Link>{" "}
+            first if you want a different plan.
           </p>
         </div>
-        <button
-          type="button"
-          className={primaryBtn}
-          disabled={calendarBusy}
-          onClick={async () => {
-            setCalendarBusy(true);
-            setCalendarError(false);
-            setCalendarStatus("Syncing Apple Calendar…");
-            try {
-              const result = await api<{
-                method: string;
-                event_count: number;
-                calendar_name: string;
-                error?: string;
-              }>("/api/calendar/sync", { method: "POST", body: "{}" });
-              if (result.method === "calendar_app") {
-                setCalendarStatus(
-                  `Wrote ${result.event_count} recurring events to “${result.calendar_name}”.`,
-                );
-              } else {
-                setCalendarStatus(
-                  `Opened Calendar with ${result.event_count} events. Import into “${result.calendar_name}” if asked. ${result.error || ""}`.trim(),
-                );
-              }
-            } catch (error) {
-              setCalendarError(true);
-              setCalendarStatus(
-                error instanceof Error ? error.message : "Request failed",
-              );
-            } finally {
-              setCalendarBusy(false);
-            }
-          }}
-        >
-          Sync to Apple Calendar
-        </button>
-        <p
-          className={`col-span-full m-0 min-h-[1.2em] text-[13px] ${
-            calendarError ? "text-ctp-red" : "text-ctp-green"
-          }`}
-        >
-          {calendarStatus}
-        </p>
+        <CalendarSyncButton />
       </section>
     </div>
   );

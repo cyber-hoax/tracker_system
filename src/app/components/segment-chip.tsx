@@ -1,3 +1,5 @@
+import { tagChipStyle } from "@/lib/ui/tag-color";
+
 const difficultyClass: Record<string, string> = {
   easy: "bg-ctp-green/20 text-ctp-green",
   medium: "bg-ctp-yellow/20 text-ctp-yellow",
@@ -23,12 +25,13 @@ export function SegmentChip({
       : kind === "status"
         ? (statusClass[value] ?? "bg-ctp-surface0 text-ctp-subtext0")
         : kind === "pattern"
-          ? "bg-ctp-mauve/20 text-ctp-mauve"
+          ? "tag-chip"
           : "bg-ctp-surface0 text-ctp-subtext1";
 
   return (
     <span
-      className={`inline-flex items-center font-mono text-xs px-2 py-0.5 ${color}`}
+      className={`inline-flex items-center rounded-sm font-mono text-xs px-2 py-0.5 ${color}`}
+      style={kind === "pattern" ? tagChipStyle(value) : undefined}
     >
       {value}
     </span>

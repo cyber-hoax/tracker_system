@@ -4,6 +4,7 @@ import {
   hasSearchInput,
   parseSearchQuery,
   websearchQuery,
+  escapeIlikePattern,
 } from "./query";
 
 describe("parseSearchQuery", () => {
@@ -52,6 +53,12 @@ describe("websearchQuery", () => {
 
   it("passes through the trimmed user string for websearch_to_tsquery", () => {
     expect(websearchQuery(" sliding  window ")).toBe("sliding  window");
+  });
+});
+
+describe("escapeIlikePattern", () => {
+  it("escapes LIKE wildcards so they are literal", () => {
+    expect(escapeIlikePattern("100%_done\\x")).toBe("100\\%\\_done\\\\x");
   });
 });
 

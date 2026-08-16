@@ -9,15 +9,16 @@ import {
   zonedParts,
   zonedWallToDate,
 } from "./timezone";
-import type {
-  EnrichedBlock,
-  Routine,
-  RoutineBlock,
-  RoutinePhase,
-  ScheduleSnapshot,
+import {
+  DAY_KEYS,
+  type EnrichedBlock,
+  type Routine,
+  type RoutineBlock,
+  type RoutinePhase,
+  type ScheduleSnapshot,
 } from "./types";
 
-export const DAY_KEYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const;
+export { DAY_KEYS };
 
 export function dayKeyForParts(year: number, month: number, day: number): string {
   return DAY_KEYS[pythonWeekday(year, month, day)];
@@ -156,15 +157,16 @@ export function iterBlocksForDay(
 ): EnrichedBlock[] {
   const key = dayKeyForParts(year, month, day);
   const daySpec = routine.days[key];
+  if (!daySpec) return [];
   const noon = zonedWallToDate(year, month, day, 12, 0, timeZone);
   return daySpec.blocks.map((block) =>
     enrichBlock(block, year, month, day, timeZone, noon),
   );
 }
 
-export function currentAndNext(moment = new Date()): ScheduleSnapshot {
+export async function currentAndNext(moment = new Date()): Promise<ScheduleSnapshot> {
   const cfg = loadConfig();
-  const routine = loadRoutine();
+  const routine = await loadRoutine();
   const timeZone = cfg.timezone;
   const todayParts = zonedParts(moment, timeZone);
   const yesterday = addCalendarDays(todayParts.year, todayParts.month, todayParts.day, -1);
@@ -176,6 +178,7 @@ export function currentAndNext(moment = new Date()): ScheduleSnapshot {
   for (const day of [yesterday, todayParts, tomorrow]) {
     const key = dayKeyForParts(day.year, day.month, day.day);
     const daySpec = routine.days[key];
+    if (!daySpec) continue;
     for (const raw of daySpec.blocks) {
       const { startDt, endDt } = blockWindow(
         day.year,
@@ -211,9 +214,9 @@ export function currentAndNext(moment = new Date()): ScheduleSnapshot {
     now: toIsoWithOffset(moment, timeZone),
     timezone: timeZone,
     day_key: dayKey,
-    day_label: daySpec.label,
-    day_kind: daySpec.kind,
-    day_summary: daySpec.summary,
+    day_label: daySpec?.label || dayKey,
+    day_kind: daySpec?.kind || "",
+    day_summary: daySpec?.summary || "",
     current,
     next: upcoming[0] ?? null,
     upcoming: upcoming.slice(0, 6),

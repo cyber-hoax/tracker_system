@@ -91,6 +91,10 @@ async function seed() {
   for (const row of rows.sort((a, b) => a.key.localeCompare(b.key))) {
     console.log(`  ${row.key} (${row.valueType}${row.isSystem ? ", system" : ""})`);
   }
+
+  const { loadRoutineRecord } = await import("../lib/routine");
+  const routine = await loadRoutineRecord();
+  console.log(`routine: ${routine.name} (${Object.keys(routine.payload.days).length} days)`);
 }
 
 seed()

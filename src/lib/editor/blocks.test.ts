@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   collapseConsecutiveEmptyParagraphs,
+  ensureEditableSurface,
   handleEnter,
   insertBlockAfter,
   parseMarkdownToBlocks,
@@ -174,13 +175,16 @@ describe("block insert and enter", () => {
     ]);
   });
 
-  it("does not stack another empty paragraph when Enter is pressed on an empty one", () => {
+  it("creates a new line when Enter is pressed on an empty paragraph", () => {
     const blocks: EditorBlock[] = [{ id: "a", type: "paragraph", text: "" }];
     const next = handleEnter(blocks, 0, 0, ids());
-    expect(snapshot(next)).toEqual([{ type: "paragraph", text: "" }]);
+    expect(snapshot(next)).toEqual([
+      { type: "paragraph", text: "" },
+      { type: "paragraph", text: "" },
+    ]);
   });
 
-  it("keeps a single empty paragraph after Enter at the end of a paragraph", () => {
+  it("keeps a new empty paragraph after Enter at the end of a paragraph", () => {
     const blocks = parseMarkdownToBlocks("Hello", ids());
     const afterFirst = handleEnter(blocks, 0, 5, ids());
     expect(snapshot(afterFirst)).toEqual([
@@ -191,6 +195,7 @@ describe("block insert and enter", () => {
     expect(snapshot(afterSecond)).toEqual([
       { type: "paragraph", text: "Hello" },
       { type: "paragraph", text: "" },
+      { type: "paragraph", text: "" },
     ]);
   });
 
@@ -198,6 +203,37 @@ describe("block insert and enter", () => {
     const blocks = parseMarkdownToBlocks("Hello", ids());
     const next = handleEnter(blocks, 0, 0, ids());
     expect(snapshot(next)).toEqual([{ type: "paragraph", text: "Hello" }]);
+  });
+
+  it("reuses one id factory so trailing surface blocks stay deterministic", () => {
+    const createId = ids();
+    const blocks = ensureEditableSurface(
+      parseMarkdownToBlocks("```cpp\nint x;\n```", createId),
+      createId,
+    );
+    expect(blocks.map((block) => block.id)).toEqual(["id-1", "id-2"]);
+  });
+
+  it("adds a blank paragraph after a trailing code block", () => {
+    const blocks = parseMarkdownToBlocks("```cpp\nint x;\n```", ids());
+    expect(snapshot(ensureEditableSurface(blocks, ids()))).toEqual([
+      { type: "code", text: "int x;", language: "cpp" },
+      { type: "paragraph", text: "" },
+    ]);
+  });
+
+  it("inserts a writable paragraph after each code block", () => {
+    const blocks = parseMarkdownToBlocks(
+      "```cpp\nint x;\n```\n\n# Title\n\n```ts\nconst y = 1;\n```",
+      ids(),
+    );
+    expect(snapshot(ensureEditableSurface(blocks, ids()))).toEqual([
+      { type: "code", text: "int x;", language: "cpp" },
+      { type: "paragraph", text: "" },
+      { type: "heading1", text: "Title" },
+      { type: "code", text: "const y = 1;", language: "ts" },
+      { type: "paragraph", text: "" },
+    ]);
   });
 
   it("collapses consecutive empty paragraphs to one", () => {

@@ -5,3 +5,7 @@
 export function isNoteRoute(pathname: string): boolean {
   return /^\/(dsa|patterns|notes)\/[^/]+$/.test(pathname);
 }
+
+export function isFullBleedRoute(pathname: string): boolean {
+  return isNoteRoute(pathname) || pathname === "/chat";
+}

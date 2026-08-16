@@ -17,6 +17,7 @@
     "uninstall-agent": "tsx scripts/install-agent.ts uninstall"
   },
   "dependencies": {
+    "@phosphor-icons/react": "^2.1.10",
     "dotenv": "^17.4.2",
     "drizzle-orm": "^0.44.7",
     "gray-matter": "^4.0.3",

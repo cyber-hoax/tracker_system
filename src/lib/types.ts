@@ -11,6 +11,20 @@ export const SUBJECTS = [
 
 export type Subject = (typeof SUBJECTS)[number];
 
+export const DAY_KEYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const;
+
+export type DayKey = (typeof DAY_KEYS)[number];
+
+export const DAY_LABELS: Record<DayKey, string> = {
+  mon: "Monday",
+  tue: "Tuesday",
+  wed: "Wednesday",
+  thu: "Thursday",
+  fri: "Friday",
+  sat: "Saturday",
+  sun: "Sunday",
+};
+
 export type RoutineBlock = {
   start: string;
   end: string;

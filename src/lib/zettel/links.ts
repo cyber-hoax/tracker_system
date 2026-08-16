@@ -1,4 +1,4 @@
-import { and, eq, ilike, inArray, or } from "drizzle-orm";
+import { and, eq, ilike, inArray, ne, or } from "drizzle-orm";
 import { db } from "@/db";
 import {
   links,
@@ -13,6 +13,7 @@ import { patternDbSlug, slugify } from "./slug";
 import { isWikilinkType, wikilinkTargetsFromValue } from "./values";
 import { displayWikilink, parseWikilink, wikilinkLeaf } from "./wikilink";
 import { defaultFolderIdForType } from "@/lib/workspace/folders";
+import { suffixedRelativePath } from "@/lib/obsidian/paths";
 
 type Executor = Pick<typeof db, "select" | "insert" | "delete">;
 
@@ -185,6 +186,7 @@ export async function resolveExistingNote(raw: string, executor: Executor = db) 
 export async function uniqueSlug(
   base: string,
   executor: Executor = db,
+  excludeId?: string,
 ): Promise<string> {
   let slug = base;
   let n = 2;
@@ -192,10 +194,36 @@ export async function uniqueSlug(
     const existing = await executor
       .select({ id: notes.id })
       .from(notes)
-      .where(eq(notes.slug, slug))
+      .where(
+        excludeId
+          ? and(eq(notes.slug, slug), ne(notes.id, excludeId))
+          : eq(notes.slug, slug),
+      )
       .limit(1);
     if (!existing[0]) return slug;
     slug = `${base}-${n}`;
+    n += 1;
+  }
+}
+
+export async function uniqueFilePath(
+  base: string,
+  executor: Executor = db,
+  excludeId?: string,
+): Promise<string> {
+  let n = 1;
+  for (;;) {
+    const filePath = suffixedRelativePath(base, n);
+    const existing = await executor
+      .select({ id: notes.id })
+      .from(notes)
+      .where(
+        excludeId
+          ? and(eq(notes.filePath, filePath), ne(notes.id, excludeId))
+          : eq(notes.filePath, filePath),
+      )
+      .limit(1);
+    if (!existing[0]) return filePath;
     n += 1;
   }
 }

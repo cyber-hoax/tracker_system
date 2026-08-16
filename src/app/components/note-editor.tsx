@@ -11,10 +11,20 @@ import { type CodeTheme } from "@/lib/appearance";
 import { PATTERN_PROPERTY_KEY } from "@/lib/zettel/constants";
 import { noteHref } from "@/lib/zettel/slug";
 import { asStringArray, type PropertyJson } from "@/lib/zettel/values";
+import { tagChipStyle } from "@/lib/ui/tag-color";
+import {
+  CaretDown,
+  CaretRight,
+  Eye,
+  MarkdownLogo,
+  NotePencil,
+  Trash,
+} from "@phosphor-icons/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition, type ReactNode } from "react";
 import { BlockEditor } from "./block-editor";
+import { MarkdownPreview } from "./markdown-preview";
 
 export type EditorProperty = {
   defId: string;
@@ -45,6 +55,8 @@ export type EditorNote = {
 const BODY_AUTOSAVE_MS = 600;
 const PROPERTIES_OPEN_KEY = "note-properties-open";
 
+type EditorView = "edit" | "markdown" | "preview";
+
 export function NoteEditor({
   note,
   patternTitles,
@@ -62,6 +74,7 @@ export function NoteEditor({
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [propertiesOpen, setPropertiesOpen] = useState(true);
+  const [view, setView] = useState<EditorView>("edit");
   const lastSaved = useRef({ title: note.title, body: note.body });
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const titleRef = useRef(title);
@@ -150,8 +163,23 @@ export function NoteEditor({
         setError(result.error);
         return;
       }
-      router.refresh();
+      if (result.href && result.href !== window.location.pathname) {
+        router.replace(result.href);
+        return;
+      }
+      if (next?.body === undefined || next.title !== undefined) {
+        router.refresh();
+      }
     });
+  }
+
+  function scheduleTitleSave(value: string) {
+    setTitle(value);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      const trimmed = value.trim();
+      if (trimmed) flushSave({ title: trimmed });
+    }, BODY_AUTOSAVE_MS);
   }
 
   function scheduleBodySave(markdown: string) {
@@ -169,27 +197,75 @@ export function NoteEditor({
         className="flex min-h-0 min-w-0 flex-1 flex-col px-5 pb-8 pt-6 lg:h-screen lg:overflow-hidden"
       >
         <div className="mx-auto flex min-h-0 w-full max-w-[52rem] flex-1 flex-col gap-3 lg:overflow-hidden">
-          {breadcrumb ? <div className="shrink-0">{breadcrumb}</div> : null}
+          <div className="flex shrink-0 items-start justify-between gap-3">
+            {breadcrumb ? <div className="min-w-0">{breadcrumb}</div> : <span />}
+            <div className="flex shrink-0 items-center gap-0.5 rounded-md bg-ctp-mantle p-0.5">
+              {(
+                [
+                  ["edit", "Edit", NotePencil],
+                  ["markdown", "Markdown", MarkdownLogo],
+                  ["preview", "Preview", Eye],
+                ] as const
+              ).map(([id, label, Icon]) => (
+                <button
+                  key={id}
+                  type="button"
+                  title={label}
+                  aria-label={label}
+                  aria-pressed={view === id}
+                  onClick={() => setView(id)}
+                  className={`flex h-8 w-8 items-center justify-center rounded-md ${
+                    view === id
+                      ? "bg-ctp-surface0 text-ctp-text"
+                      : "text-ctp-overlay0 hover:text-ctp-subtext0"
+                  }`}
+                >
+                  <Icon size={20} weight={view === id ? "fill" : "bold"} />
+                </button>
+              ))}
+            </div>
+          </div>
           <input
             value={title}
-            onChange={(event) => setTitle(event.target.value)}
+            aria-label="Title"
+            placeholder="Untitled"
+            onChange={(event) => scheduleTitleSave(event.target.value)}
             onBlur={() => {
               if (title.trim() && title.trim() !== lastSaved.current.title) {
                 flushSave({ title: title.trim() });
               }
             }}
-            className="w-full shrink-0 border-0 border-b border-ctp-surface0 bg-transparent pb-2 text-2xl text-ctp-text focus:border-ctp-mauve focus:outline-none"
-          />
-          <BlockEditor
-            key={note.id}
-            initialMarkdown={note.body}
-            codeTheme={codeTheme}
-            onMarkdownChange={scheduleBodySave}
-            onRequestSave={(markdown) => {
-              setBody(markdown);
-              flushSave({ body: markdown });
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                event.currentTarget.blur();
+              }
             }}
+            className="w-full shrink-0 border-0 bg-transparent pb-3 font-sans text-4xl font-bold leading-tight text-ctp-text caret-ctp-lavender outline-none placeholder:text-ctp-overlay0"
           />
+          {view === "edit" ? (
+            <BlockEditor
+              key={`${note.id}-edit`}
+              initialMarkdown={body}
+              codeTheme={codeTheme}
+              onMarkdownChange={scheduleBodySave}
+              onRequestSave={(markdown) => {
+                setBody(markdown);
+                flushSave({ body: markdown });
+              }}
+            />
+          ) : null}
+          {view === "markdown" ? (
+            <textarea
+              value={body}
+              onChange={(event) => scheduleBodySave(event.target.value)}
+              onBlur={() => flushSave({ body: bodyRef.current })}
+              spellCheck={false}
+              className="min-h-0 flex-1 resize-none bg-transparent font-mono text-sm leading-6 text-ctp-text caret-ctp-lavender outline-none"
+              placeholder="# Markdown"
+            />
+          ) : null}
+          {view === "preview" ? <MarkdownPreview markdown={body} /> : null}
           {error ? <p className="shrink-0 text-sm text-ctp-red">{error}</p> : null}
 
           {note.type === "pattern" ? (
@@ -210,9 +286,11 @@ export function NoteEditor({
               className="flex w-full items-center justify-between gap-2 font-mono text-xs uppercase tracking-wide text-ctp-mauve hover:text-ctp-lavender"
             >
               <span>Properties</span>
-              <span aria-hidden className="text-[10px] text-ctp-overlay0">
-                {propertiesOpen ? "▾" : "▸"}
-              </span>
+              {propertiesOpen ? (
+                <CaretDown size={16} weight="bold" className="text-ctp-overlay0" />
+              ) : (
+                <CaretRight size={16} weight="bold" className="text-ctp-overlay0" />
+              )}
             </button>
             {propertiesOpen ? (
               <div className="mt-3 space-y-4">
@@ -328,7 +406,8 @@ function LinkedTagHubsReadOnly({
             <li key={pattern.id}>
               <Link
                 href={noteHref("pattern", pattern.slug)}
-                className="inline-flex items-center rounded-sm bg-ctp-mauve/20 px-2 py-0.5 font-mono text-xs text-ctp-mauve hover:text-ctp-lavender"
+                className="tag-chip inline-flex items-center rounded-sm px-2 py-0.5 font-mono text-xs hover:opacity-90"
+                style={tagChipStyle(pattern.title)}
               >
                 {pattern.title}
               </Link>
@@ -429,9 +508,10 @@ function PropertyField({
           type="button"
           disabled={disabled}
           onClick={onRemove}
-          className="font-mono text-[10px] text-ctp-overlay0 hover:text-ctp-red"
+          className="flex h-7 w-7 items-center justify-center rounded-md text-ctp-overlay0 hover:bg-ctp-surface0 hover:text-ctp-red"
+          aria-label={`Remove ${property.key}`}
         >
-          Remove
+          <Trash size={18} weight="bold" />
         </button>
       </div>
       <FieldControl

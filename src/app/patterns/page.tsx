@@ -2,6 +2,7 @@ import Link from "next/link";
 import { connection } from "next/server";
 import { CreateNoteForm } from "@/app/components/create-note-form";
 import { listPatterns, patternUrlSlug } from "@/lib/zettel";
+import { tagChipStyle } from "@/lib/ui/tag-color";
 
 export const dynamic = "force-dynamic";
 
@@ -40,7 +41,12 @@ export default async function PatternsPage() {
                 href={`/patterns/${patternUrlSlug(pattern.slug)}`}
                 className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-ctp-mantle"
               >
-                <span className="text-sm text-ctp-text">{pattern.title}</span>
+                <span
+                  className="tag-chip inline-flex items-center rounded-sm px-2 py-0.5 font-mono text-xs"
+                  style={tagChipStyle(pattern.title)}
+                >
+                  {pattern.title}
+                </span>
                 <span className="font-mono text-xs text-ctp-mauve">
                   {pattern.backlinkCount}{" "}
                   {pattern.backlinkCount === 1 ? "problem" : "problems"}

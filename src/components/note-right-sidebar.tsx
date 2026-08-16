@@ -1,5 +1,6 @@
 "use client";
 
+import { CaretLeft, CaretRight } from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
 
 const STORAGE_KEY = "note-right-sidebar-collapsed";
@@ -39,10 +40,10 @@ export function NoteRightSidebar({ children }: { children: React.ReactNode }) {
           <button
             type="button"
             onClick={toggleCollapsed}
-            className="mx-auto font-mono text-xs text-ctp-overlay0 hover:text-ctp-text"
+            className="mx-auto flex h-8 w-8 items-center justify-center rounded-md text-ctp-overlay0 hover:bg-ctp-surface0 hover:text-ctp-text"
             aria-label="Expand properties sidebar"
           >
-            «
+            <CaretLeft size={20} weight="bold" />
           </button>
         ) : (
           <>
@@ -52,10 +53,10 @@ export function NoteRightSidebar({ children }: { children: React.ReactNode }) {
             <button
               type="button"
               onClick={toggleCollapsed}
-              className="px-1 font-mono text-xs text-ctp-overlay0 hover:text-ctp-text"
+              className="flex h-8 w-8 items-center justify-center rounded-md text-ctp-overlay0 hover:bg-ctp-surface0 hover:text-ctp-text"
               aria-label="Collapse properties sidebar"
             >
-              »
+              <CaretRight size={20} weight="bold" />
             </button>
           </>
         )}

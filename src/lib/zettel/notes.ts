@@ -12,7 +12,7 @@ import {
 } from "@/db/schema";
 import { PATTERN_PROPERTY_KEY, SYSTEM_PROPERTY_KEYS } from "./constants";
 import { propertyConditions } from "./filters";
-import { syncPropertyLinks, uniqueSlug } from "./links";
+import { syncPropertyLinks, uniqueFilePath, uniqueSlug } from "./links";
 import type { ProblemFilters } from "./query";
 import { patternDbSlug, patternSlugCandidates, slugify } from "./slug";
 import { parsePropertyValue, type PropertyJson } from "./values";
@@ -249,6 +249,7 @@ export async function createNote(input: {
   const baseSlug =
     input.type === "pattern" ? patternDbSlug(title) : slugify(title);
   const slug = await uniqueSlug(baseSlug);
+  const filePath = await uniqueFilePath(relativeNotePath(input.type, title));
   const body =
     input.body ??
     (input.type === "pattern"
@@ -267,7 +268,7 @@ export async function createNote(input: {
       slug,
       body,
       folderId,
-      filePath: relativeNotePath(input.type, title),
+      filePath,
     })
     .returning();
   return created;
@@ -284,13 +285,24 @@ export async function updateNote(
   id: string,
   patch: { title?: string; body?: string },
 ): Promise<NoteRecord> {
-  const updates: { title?: string; body?: string; updatedAt: Date } = {
+  const [current] = await db.select().from(notes).where(eq(notes.id, id)).limit(1);
+  if (!current) throw new Error("Note not found");
+
+  const updates: {
+    title?: string;
+    body?: string;
+    slug?: string;
+    updatedAt: Date;
+  } = {
     updatedAt: new Date(),
   };
   if (typeof patch.title === "string") {
     const title = patch.title.trim();
     if (!title) throw new Error("Title is required");
     updates.title = title;
+    const baseSlug =
+      current.type === "pattern" ? patternDbSlug(title) : slugify(title);
+    updates.slug = await uniqueSlug(baseSlug, db, id);
   }
   if (typeof patch.body === "string") {
     updates.body = patch.body;
