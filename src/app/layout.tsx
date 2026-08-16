@@ -5,6 +5,7 @@ import { connection } from "next/server";
 import { AppShell } from "@/components/app-shell";
 import { appearanceStyle } from "@/lib/appearance";
 import { getAppName, loadAppearance } from "@/lib/appearance-store";
+import { isDesktopApp } from "@/lib/desktop";
 import { loadWorkspaceTree } from "@/lib/workspace/folders";
 import "./globals.css";
 
@@ -34,13 +35,15 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   const appearance = loadAppearance();
   const appName = getAppName();
   const tree = await loadWorkspaceTree();
+  const desktop = await isDesktopApp();
+  const fontClass = `${jetbrainsMono.variable} ${inter.variable}`;
 
   return (
     <html
       lang="en"
       data-theme={appearance.colorTheme}
       data-code-theme={appearance.codeTheme}
-      className={`${jetbrainsMono.variable} ${inter.variable}`}
+      className={desktop ? `${fontClass} desktop-app` : fontClass}
       style={appearanceStyle(appearance) as CSSProperties}
     >
       <body className="antialiased">

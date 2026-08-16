@@ -2,12 +2,23 @@
   "name": "sde-tracker",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=20"
+  },
+  "main": "desktop/main.cjs",
   "scripts": {
+    "setup": "tsx src/db/ensure.ts",
+    "predev": "tsx src/db/ensure.ts",
     "dev": "next dev -H 127.0.0.1 -p 8765",
-    "build": "next build",
+    "build": "next build && node desktop/prepare-standalone.cjs",
+    "prestart": "tsx src/db/ensure.ts",
     "start": "next start -H 127.0.0.1 -p 8765",
     "lint": "eslint",
     "test": "vitest run",
+    "app": "tsx src/db/ensure.ts && node desktop/ensure-electron.cjs && electron .",
+    "app:dev": "tsx src/db/ensure.ts && node desktop/ensure-electron.cjs && electron .",
+    "app:pack": "npm run build && electron-builder --mac dir",
+    "app:dist": "npm run build && electron-builder --mac dmg",
     "obsidian:import": "tsx src/lib/obsidian/cli.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
@@ -35,6 +46,8 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "drizzle-kit": "^0.31.10",
+    "electron": "^37.3.1",
+    "electron-builder": "^26.0.12",
     "eslint": "^9",
     "eslint-config-next": "16.3.1",
     "tailwindcss": "^4",
@@ -42,5 +55,32 @@
     "typescript": "^5",
     "vite-tsconfig-paths": "^6.1.1",
     "vitest": "^4.1.10"
+  },
+  "build": {
+    "appId": "com.cyberhoax.daily-routine",
+    "productName": "Daily Routine",
+    "asar": true,
+    "files": [
+      "desktop/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": ".next/standalone",
+        "to": "standalone"
+      }
+    ],
+    "directories": {
+      "output": "release"
+    },
+    "mac": {
+      "category": "public.app-category.productivity",
+      "darkModeSupport": true,
+      "identity": null,
+      "target": [
+        "dir",
+        "dmg"
+      ]
+    }
   }
 }

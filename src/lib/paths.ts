@@ -6,7 +6,10 @@ export const LAUNCH_AGENT_LABEL = "com.cyberhoax.sde-routine-tracker";
 export const SUPPORT_DIR_NAME = "SDERoutineTracker";
 
 export function supportDir(): string {
-  const dir = path.join(homedir(), "Library", "Application Support", SUPPORT_DIR_NAME);
+  const dir =
+    process.platform === "darwin"
+      ? path.join(homedir(), "Library", "Application Support", SUPPORT_DIR_NAME)
+      : path.join(homedir(), ".sde-routine-tracker");
   mkdirSync(dir, { recursive: true });
   return dir;
 }
