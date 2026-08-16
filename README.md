@@ -1,17 +1,92 @@
-# Daily Routine
+# Daily Routine 🗓️
 
-Local **SDE-2 / SDE-3 prep tracker**: a daily coach, DSA Zettelkasten, reports, chat against your notes, and (on macOS) a native desktop window.
+Local-first **SDE-2 / SDE-3** workspace: a daily coach, DSA Zettelkasten, reports, chat against your notes, and (on macOS) a native desktop window.
 
-It is designed to run **only on your machine**. The web UI listens on [http://127.0.0.1:8765](http://127.0.0.1:8765). Nothing here is a hosted SaaS.
+Runs **only on your machine**. Nothing here is a hosted SaaS.
+
+<p align="center">
+  <img src="docs/screenshots/today.png" alt="Today view — current study block, timeline, and week summary" width="920" />
+</p>
+
+<p align="center">
+  <a href="https://github.com/cyber-hoax/tracker_system/fork">Fork it</a>
+  ·
+  <a href="#-quick-start-web">Web</a>
+  ·
+  <a href="#-quick-start-macos-app">macOS app</a>
+  ·
+  <a href="http://127.0.0.1:8765">http://127.0.0.1:8765</a>
+</p>
 
 You can use **either**:
 
-- **Web** — `npm run dev` then open the URL in a browser
-- **macOS app** — `npm run app` opens **Daily Routine** in Electron (same server, same database)
+- 🌐 **Web** — `npm run dev` then open the URL in a browser
+- 🍏 **macOS app** — `npm run app` opens **Daily Routine** in Electron (same server, same database)
 
-You do **not** create the Postgres database or tables by hand. The first time the app (or `npm run dev`) starts, it creates `sde_tracker` if needed, applies migrations, and seeds property definitions.
+You do **not** create the Postgres database by hand. First `npm run dev` or `npm run app` creates `sde_tracker`, applies migrations, and seeds property definitions.
 
-## Requirements
+---
+
+## ✨ Features
+
+| | |
+| --- | --- |
+| 📥 **LeetCode → notes** | Username + session cookie. New submissions become files. Existing problems **append** (with tags), they are not overwritten. Polls **every hour**. |
+| 📊 **Reports** | Daily, weekly, monthly — plus heatmaps and a calendar. |
+| 📅 **Routines + Calendar** | Multiple routines. Push to Apple Calendar (`SDE Prep`). |
+| 📝 **Notes** | New problem, pattern, or free note whenever you need it. |
+| 🏷️ **Extra properties** | Text, number, date, select, multi-select, checkbox, wikilink. |
+| ♻️ **Trash snapshots** | Latest **10 deletes** can be restored from Settings. |
+| 🔗 **Obsidian sync** | Two-way markdown with the vault you already have. |
+| 🧠 **Chat on your files** | Local models, API models, or OmniRoute. `@note` and `/folder`. |
+| 🕸️ **Graph** | Problems, patterns, wikilinks — Obsidian-style. |
+| 🐘 **Postgres** | Notes, chat, routines, and snapshots persist. Created for you. |
+| ⚙️ **Settings** | App theme, markdown / code theme, sync, properties, LLM config. |
+| 🔍 **Fuzzy search** | Titles, bodies, folders, property filters. |
+| ↩️ **Backlinks** | Every note shows what points at it. |
+
+---
+
+## 🖼 Screenshots
+
+<table>
+  <tr>
+    <td width="50%">
+      <p align="center"><strong>📝 DSA note</strong></p>
+      <img src="docs/screenshots/note.png" alt="DSA note with syntax-highlighted C++ solution" />
+    </td>
+    <td width="50%">
+      <p align="center"><strong>🧠 Chat on your notes</strong></p>
+      <img src="docs/screenshots/chat.png" alt="Chat with OmniRoute, @notes and /folders" />
+    </td>
+  </tr>
+  <tr>
+    <td>
+      <p align="center"><strong>📊 Reports + heatmap</strong></p>
+      <img src="docs/screenshots/reports.png" alt="Reports calendar heatmap for questions and routines" />
+    </td>
+    <td>
+      <p align="center"><strong>🕸️ Zettelkasten graph</strong></p>
+      <img src="docs/screenshots/graph.png" alt="Graph of problems, patterns, and wikilinks" />
+    </td>
+  </tr>
+  <tr>
+    <td>
+      <p align="center"><strong>🔍 Fuzzy search</strong></p>
+      <img src="docs/screenshots/search.png" alt="Fuzzy search results with property facets" />
+    </td>
+    <td>
+      <p align="center"><strong>⚙️ Settings</strong></p>
+      <img src="docs/screenshots/settings.png" alt="Appearance settings — app theme and code theme" />
+    </td>
+  </tr>
+</table>
+
+Themes include Catppuccin and Kanagawa. Code-block themes are independent of the app theme.
+
+---
+
+## ✅ Requirements
 
 | Tool | Why |
 | --- | --- |
@@ -20,16 +95,15 @@ You do **not** create the Postgres database or tables by hand. The first time th
 | **npm** | Comes with Node |
 | **macOS** (optional) | Desktop app, Apple Calendar, LaunchAgent |
 
-You do **not** need API keys to try the tracker. Chat models, LeetCode ingest, and Obsidian write-through are optional.
+You do **not** need API keys to try the tracker. Chat, LeetCode ingest, and Obsidian write-through are optional.
 
-## Secrets (read this before you clone)
+---
+
+## 🔐 Secrets
 
 This repo is public. **Never commit real keys.**
 
-Already gitignored:
-
-- `.env`, `.env.local`, `.env*.local`
-- `*.pem`, `*.key`, cookie dumps, `secrets/`
+Already gitignored: `.env`, `.env.local`, `*.pem`, `*.key`, cookie dumps, `secrets/`.
 
 Do **not** put any of these in git, screenshots of Settings, or PR descriptions:
 
@@ -38,16 +112,16 @@ Do **not** put any of these in git, screenshots of Settings, or PR descriptions:
 - Postgres passwords that are not the local Docker default
 - Paths to a private Obsidian vault if you do not want them public
 
-LLM keys you paste in **Settings → Models** are stored under:
+LLM keys you paste in **Settings → Models** live outside the repo:
 
 - macOS: `~/Library/Application Support/SDERoutineTracker/settings.json`
 - other OS: `~/.sde-routine-tracker/settings.json`
 
-That file is outside the repo.
+[`.env.example`](.env.example) has **placeholder names only**.
 
-If you fork this project, keep `.env.local` local. The sample file [`.env.example`](.env.example) has **placeholder names only**.
+---
 
-## Quick start (web)
+## 🌐 Quick start (web)
 
 Postgres must be reachable on `127.0.0.1:5432`. If you do not already run Postgres, use Docker:
 
@@ -65,7 +139,7 @@ What happens on `npm run dev`:
 
 1. `predev` runs `src/db/ensure.ts`
 2. If `.env.local` is missing, it writes one with `DATABASE_URL` (no API keys)
-3. It connects to Postgres, **creates database `sde_tracker` if it does not exist**
+3. It connects to Postgres and **creates database `sde_tracker` if it does not exist**
 4. It applies every file in [`drizzle/`](drizzle/)
 5. It seeds note property definitions and the default routine
 6. Next.js starts on port **8765**
@@ -76,13 +150,13 @@ If Postgres is already installed locally (Homebrew, Postgres.app, etc.), skip Do
 2. `postgresql://<your-os-user>@127.0.0.1:5432/sde_tracker`
 3. `postgresql://postgres:postgres@127.0.0.1:5432/sde_tracker` (Docker default)
 
-### Docker already using port 5432
+If something else owns `5432`, stop it or point `DATABASE_URL` in `.env.local` at a free port after changing [`docker-compose.yml`](docker-compose.yml).
 
-If something else owns `5432`, either stop it or point `DATABASE_URL` in `.env.local` at a free port after changing [`docker-compose.yml`](docker-compose.yml).
+---
 
-## Quick start (macOS desktop app)
+## 🍏 Quick start (macOS app)
 
-Same clone and same database as the web UI. In a second terminal (or instead of the browser):
+Same clone and same database as the web UI:
 
 ```bash
 cd tracker_system
@@ -109,7 +183,9 @@ npm run app:dist    # .app + DMG
 
 Stop `npm run dev` before packing; both use the `.next` folder.
 
-## Optional configuration
+---
+
+## 🛠 Optional configuration
 
 After first run you will have `.env.local`. Add only what you use:
 
@@ -124,22 +200,32 @@ After first run you will have `.env.local`. Add only what you use:
 
 Timezone and the study plan come from [`config.yaml`](config.yaml) and [`data/routine.json`](data/routine.json) (default `Asia/Kolkata`). The human-readable plan is [`docs/sde2_sde3_learning_routine.md`](docs/sde2_sde3_learning_routine.md).
 
-## What you can click through
+### Integrations
+
+All optional.
+
+- 🔗 **Obsidian** — set `OBSIDIAN_VAULT`; saving a note writes markdown. Pull vault edits from Settings or `npm run obsidian:import`.
+- 📅 **Apple Calendar** — on Today, **Sync to Apple Calendar** creates calendar **SDE Prep** (macOS permission prompt).
+- 📥 **LeetCode** — username + session cookie; sync from Settings. Never commit the cookie.
+
+---
+
+## 🗺 Pages
 
 | Path | Feature |
 | --- | --- |
 | `/` | **Today** — current block, logging, Sunday review, Calendar sync |
 | `/chat` | Chat with local or routed models; `@` notes and `/` folders |
-| `/routine` | Edit the weekly routine stored in Postgres |
+| `/routine` | Edit weekly routines stored in Postgres |
 | `/reports` | Day / week / month / calendar heatmap |
 | `/graph` | Zettelkasten graph (problems, patterns, wikilinks) |
 | `/search` | Full-text + fuzzy title search, property filters |
-| `/settings` | Appearance, Obsidian, LeetCode, LLM providers |
+| `/settings` | Appearance, Obsidian, LeetCode, extra properties, trash restore, LLM |
 | `/dsa`, `/patterns` | Problem notes and pattern hubs |
 
-Themes include Catppuccin and Kanagawa. Code-block themes are independent of the app theme.
+---
 
-## Commands
+## 📟 Commands
 
 | Command | What it does |
 | --- | --- |
@@ -154,23 +240,16 @@ Themes include Catppuccin and Kanagawa. Code-block themes are independent of the
 | `npm run install-agent` | macOS login LaunchAgent (web in the browser) |
 | `npm run uninstall-agent` | Remove that agent |
 
-## Obsidian, Calendar, LeetCode
+---
 
-All optional.
-
-- **Obsidian** — set `OBSIDIAN_VAULT`; saving a note writes markdown. Pull vault edits from Settings or `npm run obsidian:import`.
-- **Apple Calendar** — on Today, **Sync to Apple Calendar** creates calendar **SDE Prep** (macOS permission prompt).
-- **LeetCode** — username + session cookie; sync from Settings. Never commit the cookie.
-
-## Contributing and merge rules
+## 🤝 Contributing
 
 The default branch is **`main`**. It is **protected**:
 
-- Outsiders can **fork** and open a **pull request**
-- Outsiders **cannot** push to `main` or merge their own PR
-- **`CODEOWNERS`** is [@cyber-hoax](https://github.com/cyber-hoax); reviews from the owner are required
-- Force-pushes and branch deletion on `main` are disabled
-- Only the repository owner can land changes
+- Fork and open a **pull request** — welcome
+- You **cannot** push to `main` or merge your own PR
+- **`CODEOWNERS`** is [@cyber-hoax](https://github.com/cyber-hoax); owner review is required
+- Force-pushes and deleting `main` are disabled
 
 Please:
 
@@ -179,9 +258,11 @@ Please:
 3. Keep secrets out of the diff
 4. Open a PR and wait for review
 
-Do not assume a green CI check means the PR will merge.
+Happy to take feedback or feature requests.
 
-## Troubleshooting
+---
+
+## 🩺 Troubleshooting
 
 **`Could not reach Postgres`**  
 Start Docker (`docker compose up -d`) or your local Postgres, then `npm run setup`.
@@ -195,6 +276,8 @@ Something else (or a previous `next dev`) is bound there. Quit it, or set `TRACK
 **Chat has no models**  
 Add a provider in Settings (Ollama, OmniRoute, etc.). Keys stay on disk, not in git.
 
-## License
+---
+
+## 📄 License
 
 Private-use / source-available unless a `LICENSE` file is added later. Ask before you republish the routine content as your own product.
