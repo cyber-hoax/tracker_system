@@ -615,7 +615,7 @@ export function AppSidebar({
         } ${collapsed && peek ? "absolute inset-y-0 left-0 z-40 shadow-2xl" : "sticky top-0"}`}
         style={{ width: panelWidth }}
       >
-        <div className="flex h-11 shrink-0 items-center gap-1 px-1.5">
+        <div className="electron-titlebar flex h-11 shrink-0 items-center gap-1 px-1.5">
           {wide ? (
             editingTitle ? (
               <input
@@ -636,13 +636,13 @@ export function AppSidebar({
                     setEditingTitle(false);
                   }
                 }}
-                className="min-w-0 flex-1 rounded border border-ctp-mauve bg-ctp-base px-1.5 py-1 text-sm text-ctp-text outline-none"
+                className="electron-no-drag min-w-0 flex-1 rounded border border-ctp-mauve bg-ctp-base px-1.5 py-1 text-sm text-ctp-text outline-none"
               />
             ) : (
               <button
                 type="button"
                 onClick={() => setEditingTitle(true)}
-                className="min-w-0 flex-1 truncate px-1 text-left text-sm font-medium text-ctp-text hover:text-ctp-mauve"
+                className="electron-no-drag min-w-0 flex-1 truncate px-1 text-left text-sm font-medium text-ctp-text hover:text-ctp-mauve"
                 title="Rename app"
               >
                 {appName}
@@ -654,7 +654,7 @@ export function AppSidebar({
           <button
             type="button"
             onClick={toggleCollapsed}
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-ctp-overlay1 hover:bg-ctp-surface0 hover:text-ctp-text"
+            className="electron-no-drag flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-ctp-overlay1 hover:bg-ctp-surface0 hover:text-ctp-text"
             aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
             <ChromeIcon icon={SidebarSimple} />

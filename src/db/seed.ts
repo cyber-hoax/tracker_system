@@ -1,8 +1,9 @@
 import { config } from "dotenv";
+import path from "node:path";
 
-config({ path: ".env.local" });
+config({ path: ".env.local", quiet: true });
 
-async function seed() {
+export async function seedDatabase(verbose = false) {
   const { db } = await import("./index");
   const { propertyDefs } = await import("./schema");
 
@@ -86,20 +87,32 @@ async function seed() {
     .values(defs)
     .onConflictDoNothing({ target: propertyDefs.key });
 
-  const rows = await db.select().from(propertyDefs);
-  console.log(`property_defs: ${rows.length} rows`);
-  for (const row of rows.sort((a, b) => a.key.localeCompare(b.key))) {
-    console.log(`  ${row.key} (${row.valueType}${row.isSystem ? ", system" : ""})`);
+  if (verbose) {
+    const rows = await db.select().from(propertyDefs);
+    console.log(`property_defs: ${rows.length} rows`);
+    for (const row of rows.sort((a, b) => a.key.localeCompare(b.key))) {
+      console.log(`  ${row.key} (${row.valueType}${row.isSystem ? ", system" : ""})`);
+    }
   }
 
   const { loadRoutineRecord } = await import("../lib/routine");
   const routine = await loadRoutineRecord();
-  console.log(`routine: ${routine.name} (${Object.keys(routine.payload.days).length} days)`);
+  if (verbose) {
+    console.log(
+      `routine: ${routine.name} (${Object.keys(routine.payload.days).length} days)`,
+    );
+  }
 }
 
-seed()
-  .then(() => process.exit(0))
-  .catch((error: unknown) => {
-    console.error(error);
-    process.exit(1);
-  });
+const startedDirectly =
+  process.argv[1]?.includes(`${path.sep}seed.ts`) ||
+  process.argv[1]?.includes(`${path.sep}seed.js`);
+
+if (startedDirectly) {
+  seedDatabase(true)
+    .then(() => process.exit(0))
+    .catch((error: unknown) => {
+      console.error(error);
+      process.exit(1);
+    });
+}

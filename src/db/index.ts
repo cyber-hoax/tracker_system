@@ -1,9 +1,17 @@
 import { config } from "dotenv";
+import { existsSync } from "node:fs";
+import path from "node:path";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import * as schema from "./schema";
+import { supportDir } from "@/lib/paths";
 
-config({ path: ".env.local" });
+for (const file of [
+  path.join(process.cwd(), ".env.local"),
+  path.join(supportDir(), ".env.local"),
+]) {
+  if (existsSync(file)) config({ path: file, quiet: true });
+}
 
 const databaseUrl = process.env.DATABASE_URL;
 
