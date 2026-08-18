@@ -241,12 +241,31 @@ async function createWindow() {
   mainWindow.show();
 }
 
+async function isCurrentUi() {
+  try {
+    const response = await fetch(APP_URL, { cache: "no-store", signal: AbortSignal.timeout(2000) });
+    const html = await response.text();
+    return html.includes("data-theme") && html.includes('href="/chat"');
+  } catch {
+    return false;
+  }
+}
+
 async function boot() {
   copyRepoEnvIfNeeded();
   loadEnvFile(supportEnvPath());
   loadEnvFile(path.join(repoRoot(), ".env.local"));
 
-  if (!(await portOpen())) {
+  if (await portOpen()) {
+    if (!(await isCurrentUi())) {
+      dialog.showErrorBox(
+        "Daily Routine",
+        "Port 8765 is serving an older tracker UI (the previous top-nav landing page from the login item). Stop that process, then open the app again.",
+      );
+      app.quit();
+      return;
+    }
+  } else {
     spawnServer();
     const ready = await waitForPort();
     if (!ready) {
@@ -265,6 +284,7 @@ async function boot() {
 
 app.setName("Daily Routine");
 app.whenReady().then(() => {
+  app.setLoginItemSettings({ openAtLogin: false, openAsHidden: false });
   boot().catch((error) => {
     dialog.showErrorBox("Daily Routine", String(error));
     app.quit();

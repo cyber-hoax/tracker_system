@@ -3,5 +3,5 @@ calendar_name: SDE Prep
 plan_start: "2026-08-15"
 host: 127.0.0.1
 port: 8765
-open_on_login: true
+open_on_login: false
 notify_on_block_start: true

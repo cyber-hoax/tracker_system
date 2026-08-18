@@ -82,6 +82,11 @@ export async function addSession(input: {
     return serializeSession(row);
 }
 
+export async function deleteSession(id: string): Promise<SessionRecord | null> {
+  const [row] = await db.delete(sessions).where(eq(sessions.id, id)).returning();
+  return row ? serializeSession(row) : null;
+}
+
 export async function saveReview(
   weekStart: string,
   body: {

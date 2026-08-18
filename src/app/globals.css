@@ -766,3 +766,77 @@ body {
 .desktop-app .electron-no-drag {
   -webkit-app-region: no-drag;
 }
+
+.today-glass {
+  background: color-mix(in srgb, var(--ctp-mantle) 88%, transparent);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid color-mix(in srgb, var(--ctp-text) 12%, var(--ctp-surface0));
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--ctp-text) 14%, transparent),
+    0 10px 28px color-mix(in srgb, var(--ctp-crust) 35%, transparent);
+}
+
+.today-glass[data-accent="mauve"] {
+  border-color: color-mix(in srgb, var(--ctp-mauve) 50%, transparent);
+}
+
+.today-glass[data-accent="green"] {
+  border-color: color-mix(in srgb, var(--ctp-green) 50%, transparent);
+}
+
+.today-glass[data-accent="blue"] {
+  border-color: color-mix(in srgb, var(--ctp-blue) 50%, transparent);
+}
+
+.today-glass[data-accent="peach"] {
+  border-color: color-mix(in srgb, var(--ctp-peach) 50%, transparent);
+}
+
+.today-glass[data-accent="red"] {
+  border-color: color-mix(in srgb, var(--ctp-red) 50%, transparent);
+}
+
+.today-week-dsa-total {
+  background: color-mix(in srgb, var(--ctp-blue) 14%, var(--ctp-base));
+  border: 1px solid color-mix(in srgb, var(--ctp-blue) 34%, var(--ctp-surface0));
+}
+
+.today-week-dsa-week {
+  background: color-mix(in srgb, var(--ctp-teal) 14%, var(--ctp-base));
+  border: 1px solid color-mix(in srgb, var(--ctp-teal) 34%, var(--ctp-surface0));
+}
+
+.today-week-walk {
+  background: color-mix(in srgb, var(--ctp-green) 14%, var(--ctp-base));
+  border: 1px solid color-mix(in srgb, var(--ctp-green) 34%, var(--ctp-surface0));
+}
+
+.today-week-study {
+  background: color-mix(in srgb, var(--ctp-mauve) 14%, var(--ctp-base));
+  border: 1px solid color-mix(in srgb, var(--ctp-mauve) 34%, var(--ctp-surface0));
+}
+
+.today-week-dsa-total .today-week-icon {
+  color: color-mix(in srgb, var(--ctp-blue) 72%, var(--ctp-subtext1));
+}
+
+.today-week-dsa-week .today-week-icon {
+  color: color-mix(in srgb, var(--ctp-teal) 72%, var(--ctp-subtext1));
+}
+
+.today-week-walk .today-week-icon {
+  color: color-mix(in srgb, var(--ctp-green) 72%, var(--ctp-subtext1));
+}
+
+.today-week-study .today-week-icon {
+  color: color-mix(in srgb, var(--ctp-mauve) 72%, var(--ctp-subtext1));
+}
+
+.today-extra-summary::-webkit-details-marker {
+  display: none;
+}
+
+.today-extra-summary::marker {
+  content: "";
+}

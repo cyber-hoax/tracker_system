@@ -237,8 +237,8 @@ All optional.
 | `npm run db:studio` | Drizzle Studio |
 | `npm test` | Vitest |
 | `npm run build` / `npm start` | Production Next server on 8765 |
-| `npm run install-agent` | macOS login LaunchAgent (web in the browser) |
-| `npm run uninstall-agent` | Remove that agent |
+| `npm run install-agent` | Does **not** enable login auto-start (unloads the agent if present) |
+| `npm run uninstall-agent` | Remove that agent if present |
 
 ---
 

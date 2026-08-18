@@ -88,9 +88,9 @@ function copyRuntime(target: string): void {
   );
 }
 
-function plistBody(nodePath: string, workdir: string): string {
+function plistBody(nodePath: string, sourceRoot: string): string {
   const cfg = loadConfig();
-  const script = path.join(workdir, "scripts", "login-server.mjs");
+  const script = path.join(sourceRoot, "scripts", "login-server.mjs");
   const stdout = path.join(logDir(), "launchd.out.log");
   const stderr = path.join(logDir(), "launchd.err.log");
   const pathValue = [
@@ -110,19 +110,16 @@ function plistBody(nodePath: string, workdir: string): string {
   <key>Label</key>
   <string>${xmlEscape(LAUNCH_AGENT_LABEL)}</string>
   <key>WorkingDirectory</key>
-  <string>${xmlEscape(workdir)}</string>
+  <string>${xmlEscape(sourceRoot)}</string>
   <key>ProgramArguments</key>
   <array>
     <string>${xmlEscape(nodePath)}</string>
     <string>${xmlEscape(script)}</string>
   </array>
   <key>RunAtLoad</key>
-  <true/>
+  <false/>
   <key>KeepAlive</key>
-  <dict>
-    <key>SuccessfulExit</key>
-    <false/>
-  </dict>
+  <false/>
   <key>StandardOutPath</key>
   <string>${xmlEscape(stdout)}</string>
   <key>StandardErrorPath</key>
@@ -138,7 +135,9 @@ function plistBody(nodePath: string, workdir: string): string {
     <key>TRACKER_PORT</key>
     <string>${cfg.port}</string>
     <key>TRACKER_OPEN_ON_LOGIN</key>
-    <string>${cfg.openOnLogin ? "true" : "false"}</string>
+    <string>false</string>
+    <key>TRACKER_REPO</key>
+    <string>${xmlEscape(sourceRoot)}</string>
   </dict>
 </dict>
 </plist>
@@ -181,29 +180,13 @@ function installNpmAndBuild(target: string): void {
 
 export function installLaunchAgent(): Record<string, unknown> {
   const cfg = loadConfig();
-  const workdir = supportDir();
-  copyRuntime(workdir);
-  installNpmAndBuild(workdir);
-
-  const plist = launchAgentPath();
-  mkdirSync(path.dirname(plist), { recursive: true });
-  writeFileSync(plist, plistBody(process.execPath, workdir), "utf8");
-
-  const domain = `gui/${uid()}/${LAUNCH_AGENT_LABEL}`;
-  launchctl(["bootout", domain]);
-  let loaded = launchctl(["bootstrap", `gui/${uid()}`, plist]);
-  if (!loaded.ok) {
-    loaded = launchctl(["load", "-w", plist]);
-  }
-  launchctl(["enable", domain]);
-  const kicked = launchctl(["kickstart", "-k", domain]);
-
+  const removed = uninstallLaunchAgent();
   return {
-    ok: loaded.ok || kicked.ok,
-    plist,
+    ok: true,
+    autostart: false,
+    plist: removed.removed,
     label: LAUNCH_AGENT_LABEL,
-    bootstrap: (loaded.stderr || loaded.stdout || "").trim(),
-    runtime: workdir,
+    note: "Login auto-start is disabled. Start the app with npm run dev.",
     url: `http://${cfg.host}:${cfg.port}`,
   };
 }
@@ -212,6 +195,7 @@ export function uninstallLaunchAgent(): Record<string, unknown> {
   const plist = launchAgentPath();
   const domain = `gui/${uid()}/${LAUNCH_AGENT_LABEL}`;
   launchctl(["bootout", domain]);
+  launchctl(["disable", domain]);
   launchctl(["unload", "-w", plist]);
   if (existsSync(plist)) {
     unlinkSync(plist);

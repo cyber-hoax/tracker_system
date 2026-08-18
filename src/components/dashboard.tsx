@@ -2,6 +2,16 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import {
+  BookOpen,
+  CaretRight,
+  ChartLine,
+  Check,
+  Circle,
+  Clock,
+  PersonSimpleWalk,
+  Target,
+} from "@phosphor-icons/react";
 import { CalendarSyncButton } from "@/app/components/calendar-sync-button";
 import {
   formatClock12,
@@ -9,6 +19,19 @@ import {
   formatHm12,
   formatHmRange,
 } from "@/lib/timezone";
+import {
+  alreadyLogged,
+  applyLoggedSession,
+  applyUnloggedSession,
+  blockCtaMinutes,
+  blockCtaName,
+  blockLogKey,
+  blockLogSubject,
+  briefingDay,
+  sessionForQuickLog,
+  timelineChip,
+  type TimelineChip,
+} from "@/lib/dashboard-log";
 import type { Briefing, EnrichedBlock, SessionRecord } from "@/lib/types";
 
 type DashboardProps = {
@@ -16,8 +39,19 @@ type DashboardProps = {
   initialRecent: SessionRecord[];
 };
 
-const LOG_SUBJECTS = ["dsa", "lld", "hld", "ai", "reading", "walk", "review"] as const;
+type BusyKind = "block" | "walk" | "reading" | "form" | "undo";
 
+const EXTRA_DEFAULTS = new Set(["dsa", "lld", "hld", "ai", "review"]);
+
+function extraDefaultSubject(current: EnrichedBlock | null): string {
+  if (!current) return "other";
+  const subject = blockLogSubject(current);
+  return EXTRA_DEFAULTS.has(subject) ? subject : "other";
+}
+
+function isOptimisticId(id: string): boolean {
+  return id.startsWith("optimistic-");
+}
 
 function kindAccent(kind: string, subject: string): string {
   if (subject === "dsa") return "mauve";
@@ -26,23 +60,6 @@ function kindAccent(kind: string, subject: string): string {
   if (kind === "study") return "peach";
   if (kind === "meal") return "red";
   return "overlay";
-}
-
-function accentBorder(accent: string): string {
-  switch (accent) {
-    case "mauve":
-      return "border-ctp-mauve/50";
-    case "green":
-      return "border-ctp-green/50";
-    case "blue":
-      return "border-ctp-blue/50";
-    case "peach":
-      return "border-ctp-peach/50";
-    case "red":
-      return "border-ctp-red/50";
-    default:
-      return "border-ctp-surface0";
-  }
 }
 
 function accentMeter(accent: string): string {
@@ -77,8 +94,37 @@ function liveProgress(block: EnrichedBlock | null, nowMs: number) {
   };
 }
 
+function chipClass(chip: TimelineChip): string {
+  const base =
+    "rounded-full px-2.5 py-1 font-mono text-[13px] transition-colors duration-150";
+  switch (chip) {
+    case "Now":
+      return `${base} bg-ctp-peach text-ctp-crust`;
+    case "Logged":
+      return `${base} border border-ctp-green/40 bg-transparent text-ctp-green`;
+    case "Remaining":
+      return `${base} border border-ctp-overlay1 bg-transparent text-ctp-overlay1`;
+    case "Missed":
+      return `${base} border border-ctp-red bg-transparent text-ctp-red`;
+  }
+}
+
+function pipClass(chip: TimelineChip): string {
+  switch (chip) {
+    case "Now":
+      return "bg-ctp-peach ring-2 ring-ctp-peach/40";
+    case "Logged":
+      return "bg-ctp-green";
+    case "Missed":
+      return "bg-ctp-red";
+    default:
+      return "bg-ctp-overlay1";
+  }
+}
+
 async function api<T>(path: string, options?: RequestInit): Promise<T> {
   const response = await fetch(path, {
+    cache: "no-store",
     headers: { "Content-Type": "application/json" },
     ...options,
   });
@@ -95,22 +141,40 @@ async function api<T>(path: string, options?: RequestInit): Promise<T> {
 const inputClass =
   "mt-1.5 w-full rounded-xl border border-ctp-surface0 bg-ctp-base px-3 py-2.5 text-ctp-text outline-none focus:border-ctp-mauve";
 const labelClass = "mb-2.5 block text-[13px] text-ctp-overlay0";
-const panelClass = "rounded-2xl border border-ctp-surface0 bg-ctp-mantle p-5";
+const panelClass = "today-glass rounded-2xl p-5";
 const primaryBtn =
-  "rounded-full bg-ctp-peach px-4 py-2.5 font-medium text-ctp-crust disabled:cursor-wait disabled:opacity-55";
+  "rounded-full bg-ctp-peach px-4 py-2.5 font-medium text-ctp-crust transition-colors duration-150 disabled:cursor-wait disabled:opacity-55";
 const ghostBtn =
-  "rounded-full border border-ctp-surface1 bg-transparent px-4 py-2.5 text-ctp-text";
+  "rounded-full border border-ctp-surface1 bg-transparent px-4 py-2.5 text-ctp-text transition-colors duration-150 hover:border-ctp-overlay1 hover:bg-ctp-surface0 disabled:cursor-wait disabled:opacity-55";
+const doneBtn =
+  "rounded-full border border-ctp-green/40 bg-ctp-green/10 px-4 py-2.5 text-ctp-green transition-colors duration-150";
+const undoLink =
+  "px-1 py-1 text-[13px] text-ctp-overlay0 transition-colors duration-150 hover:text-ctp-text disabled:cursor-wait disabled:opacity-55";
+const undoLinkDone =
+  "px-1 py-1 text-[13px] text-ctp-green/80 transition-colors duration-150 hover:text-ctp-green disabled:cursor-wait disabled:opacity-55";
+const checkBtn =
+  "inline-flex items-center gap-1.5 rounded-full px-1.5 py-1 text-[13px] text-ctp-subtext0 transition-colors duration-150 disabled:cursor-wait disabled:opacity-55";
+const checkDoneBtn =
+  "inline-flex items-center gap-1.5 rounded-full px-1.5 py-1 text-[13px] text-ctp-green transition-colors duration-150 disabled:cursor-wait disabled:opacity-55";
 
 export function Dashboard({ initialBriefing, initialRecent }: DashboardProps) {
   const [briefing, setBriefing] = useState(initialBriefing);
   const [recent, setRecent] = useState(initialRecent);
   const [nowMs, setNowMs] = useState(() => Date.now());
-  const [logStatus, setLogStatus] = useState("");
-  const [logError, setLogError] = useState(false);
+  const [status, setStatus] = useState("");
+  const [statusError, setStatusError] = useState(false);
+  const [busy, setBusy] = useState<null | BusyKind>(null);
+  const [flash, setFlash] = useState<string | null>(null);
   const [reviewStatus, setReviewStatus] = useState("");
   const [reviewError, setReviewError] = useState(false);
-  const logFormRef = useRef<HTMLFormElement>(null);
+  const [extraOpen, setExtraOpen] = useState(false);
+  const extraFormRef = useRef<HTMLFormElement>(null);
+  const blockCtaRef = useRef<HTMLButtonElement>(null);
+  const walkCheckRef = useRef<HTMLButtonElement>(null);
+  const readingCheckRef = useRef<HTMLButtonElement>(null);
   const reviewHydrated = useRef(false);
+  const snapshotRef = useRef({ briefing: initialBriefing, recent: initialRecent });
+  const busyRef = useRef<null | BusyKind>(null);
 
   const clock = useMemo(
     () => formatClock12(briefing.timezone, new Date(nowMs)),
@@ -131,8 +195,13 @@ export function Dashboard({ initialBriefing, initialRecent }: DashboardProps) {
   }, []);
 
   useEffect(() => {
+    busyRef.current = busy;
+  }, [busy]);
+
+  useEffect(() => {
     const tick = window.setInterval(() => setNowMs(Date.now()), 1000);
     const poll = window.setInterval(() => {
+      if (busyRef.current) return;
       void refresh().catch(() => undefined);
     }, 30000);
     return () => {
@@ -142,19 +211,11 @@ export function Dashboard({ initialBriefing, initialRecent }: DashboardProps) {
   }, [refresh]);
 
   useEffect(() => {
-    const logForm = logFormRef.current;
-    if (logForm && current) {
-    const subjectField = logForm.elements.namedItem("subject");
-    const minutesField = logForm.elements.namedItem("minutes");
-    if (
-      subjectField instanceof HTMLSelectElement &&
-      LOG_SUBJECTS.includes(current.subject as (typeof LOG_SUBJECTS)[number])
-    ) {
-      subjectField.value = current.subject;
-    }
-    if (minutesField instanceof HTMLInputElement && current.remaining_min) {
-      minutesField.value = String(Math.max(5, Math.round(current.minutes / 5) * 5));
-    }
+    const form = extraFormRef.current;
+    if (!form) return;
+    const subjectField = form.elements.namedItem("subject");
+    if (subjectField instanceof HTMLSelectElement) {
+      subjectField.value = extraDefaultSubject(current);
     }
   }, [current]);
 
@@ -169,21 +230,242 @@ export function Dashboard({ initialBriefing, initialRecent }: DashboardProps) {
     reviewHydrated.current = true;
   }, [briefing.stats.review]);
 
-  async function logSession(body: {
-    subject: string;
-    minutes: number;
-    notes?: string;
-    problems_count?: number;
-  }) {
-    const result = await api<{ briefing: Briefing; session: SessionRecord }>(
-      "/api/sessions",
-      { method: "POST", body: JSON.stringify(body) },
-    );
-    setBriefing(result.briefing);
-    await refresh();
-  }
+  useEffect(() => {
+    snapshotRef.current = { briefing, recent };
+  }, [briefing, recent]);
 
   const studyH = ((briefing.stats.study_minutes_week || 0) / 60).toFixed(1);
+  const logging = Boolean(busy);
+  const walkDone = alreadyLogged("walk", briefing, recent);
+  const readingDone = alreadyLogged("reading", briefing, recent);
+  const blockDone = alreadyLogged("block", briefing, recent);
+  const blockSession = sessionForQuickLog("block", briefing, recent);
+  const walkSession = sessionForQuickLog("walk", briefing, recent);
+  const readingSession = sessionForQuickLog("reading", briefing, recent);
+  const extraSubmitPeach = extraOpen && (blockDone || !current);
+
+  function alreadyMessage(kind: "walk" | "reading" | "block"): string {
+    if (kind === "walk") return "Walk already logged today.";
+    if (kind === "reading") return "Reading already logged today.";
+    return "This block is already logged.";
+  }
+
+  function setLiveStatus(message: string, error = false) {
+    setStatusError(error);
+    setStatus(message);
+  }
+
+  function flashStat(key: string) {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    setFlash(key);
+    window.setTimeout(() => {
+      setFlash((currentFlash) => (currentFlash === key ? null : currentFlash));
+    }, 1400);
+  }
+
+  function statCardClass(key: string, tint: string): string {
+    return `rounded-xl p-3 transition-shadow duration-300 ${tint} ${
+      flash === key ? "ring-1 ring-ctp-green/80" : ""
+    }`;
+  }
+
+  function habitExtra(kind: "walk" | "reading"): Record<string, unknown> | undefined {
+    if (!current) return undefined;
+    if (current.subject !== kind && current.kind !== kind) return undefined;
+    return {
+      block_key: blockLogKey(current, briefingDay(briefing)),
+      block_start: current.start,
+      block_title: current.title,
+    };
+  }
+
+  async function logSession(
+    body: {
+      subject: string;
+      minutes: number;
+      notes?: string;
+      problems_count?: number;
+      extra?: Record<string, unknown>;
+    },
+    kind: Exclude<BusyKind, "undo">,
+    successMessage: string,
+  ) {
+    if (busy) return false;
+    if (kind === "walk" || kind === "reading" || kind === "block") {
+      if (alreadyLogged(kind, snapshotRef.current.briefing, snapshotRef.current.recent)) {
+        setLiveStatus(alreadyMessage(kind));
+        return false;
+      }
+    }
+    setBusy(kind);
+    setLiveStatus("Logging…");
+
+    const snapshot = snapshotRef.current;
+    const optimisticSession: SessionRecord = {
+      id: `optimistic-${Date.now()}`,
+      ts: new Date().toISOString(),
+      subject: body.subject,
+      minutes: body.minutes,
+      notes: body.notes || "",
+      problems_count: body.problems_count || 0,
+      extra: body.extra || {},
+    };
+    const optimistic = applyLoggedSession({
+      briefing: snapshot.briefing,
+      recent: snapshot.recent,
+      session: optimisticSession,
+    });
+    setBriefing(optimistic.briefing);
+    setRecent(optimistic.recent);
+    if (body.subject === "walk") flashStat("walk");
+    else if (body.subject === "reading") flashStat("reading");
+    else if (body.subject === "dsa") flashStat("dsa");
+    else flashStat("study");
+
+    try {
+      const result = await api<{ briefing: Briefing; session: SessionRecord }>(
+        "/api/sessions",
+        { method: "POST", body: JSON.stringify(body) },
+      );
+      setBriefing(result.briefing);
+      setRecent((currentRecent) => {
+        const withoutOptimistic = currentRecent.filter(
+          (row) => row.id !== optimisticSession.id && row.id !== result.session.id,
+        );
+        return [result.session, ...withoutOptimistic];
+      });
+      await refresh();
+      setLiveStatus(successMessage);
+    } catch (error) {
+      setBriefing(snapshot.briefing);
+      setRecent(snapshot.recent);
+      setLiveStatus(error instanceof Error ? error.message : "Request failed", true);
+      return false;
+    } finally {
+      setBusy(null);
+    }
+    return true;
+  }
+
+  async function undoSession(
+    target: SessionRecord,
+    successMessage: string,
+    restoreFocus?: () => void,
+  ) {
+    if (busy || isOptimisticId(target.id)) return;
+    setBusy("undo");
+    const snapshot = snapshotRef.current;
+    const optimistic = applyUnloggedSession({
+      briefing: snapshot.briefing,
+      recent: snapshot.recent,
+      session: target,
+    });
+    setBriefing(optimistic.briefing);
+    setRecent(optimistic.recent);
+
+    try {
+      const response = await fetch(`/api/sessions/${target.id}`, {
+        method: "DELETE",
+        cache: "no-store",
+      });
+      const data = (await response.json().catch(() => ({}))) as {
+        detail?: string;
+        error?: string;
+        briefing?: Briefing;
+      };
+      if (response.status === 404) {
+        await refresh();
+        setLiveStatus("Already removed.");
+        return;
+      }
+      if (!response.ok) {
+        throw new Error(data.detail || data.error || "Request failed");
+      }
+      if (data.briefing) setBriefing(data.briefing);
+      await refresh();
+      setLiveStatus(successMessage);
+    } catch (error) {
+      setBriefing(snapshot.briefing);
+      setRecent(snapshot.recent);
+      setLiveStatus(error instanceof Error ? error.message : "Request failed", true);
+    } finally {
+      setBusy(null);
+      if (restoreFocus) {
+        requestAnimationFrame(() => restoreFocus());
+      }
+    }
+  }
+
+  function logCurrentBlock() {
+    if (!current) return;
+    if (blockDone) {
+      setLiveStatus(alreadyMessage("block"));
+      return;
+    }
+    const minutes = blockCtaMinutes(current);
+    const subject = blockLogSubject(current);
+    void logSession(
+      {
+        subject,
+        minutes,
+        notes: current.title,
+        extra: {
+          block_key: blockLogKey(current, briefingDay(briefing)),
+          block_start: current.start,
+          block_title: current.title,
+        },
+      },
+      "block",
+      "Logged this block.",
+    );
+  }
+
+  function toggleHabit(kind: "walk" | "reading") {
+    const done = kind === "walk" ? walkDone : readingDone;
+    const session = kind === "walk" ? walkSession : readingSession;
+    const checkRef = kind === "walk" ? walkCheckRef : readingCheckRef;
+    if (done) {
+      if (session && !isOptimisticId(session.id)) {
+        void undoSession(
+          session,
+          kind === "walk" ? "Walk undone." : "Reading undone.",
+          () => checkRef.current?.focus(),
+        );
+      }
+      return;
+    }
+    if (kind === "walk") {
+      void logSession(
+        {
+          subject: "walk",
+          minutes: 20,
+          notes: "20-minute walk",
+          extra: habitExtra("walk"),
+        },
+        "walk",
+        "Walk logged.",
+      );
+      return;
+    }
+    void logSession(
+      {
+        subject: "reading",
+        minutes: 30,
+        notes: "Reading block",
+        extra: habitExtra("reading"),
+      },
+      "reading",
+      "Reading logged.",
+    );
+  }
+
+  const blockLabel = current
+    ? busy === "block"
+      ? "Logging…"
+      : blockDone
+        ? "Logged"
+        : `Log ${blockCtaName(current)} · ${blockCtaMinutes(current)}m`
+    : "";
 
   return (
     <div>
@@ -205,9 +487,16 @@ export function Dashboard({ initialBriefing, initialRecent }: DashboardProps) {
         </div>
       </div>
 
-      <section className={`mb-5 rounded-2xl border bg-ctp-mantle p-7 ${accentBorder(accent)}`}>
-        <p className="mb-2 font-mono text-[11px] uppercase tracking-[0.16em] text-ctp-overlay0">
-          {briefing.day_label}
+      <section
+        className="today-glass mb-5 rounded-2xl p-7"
+        data-accent={accent === "overlay" ? undefined : accent}
+      >
+        <p
+          className={`mb-2 font-mono text-[11px] uppercase tracking-[0.16em] ${
+            current ? "text-ctp-peach" : "text-ctp-overlay0"
+          }`}
+        >
+          {current ? "Now" : briefing.day_label}
         </p>
         <h2 className="text-3xl font-medium tracking-tight sm:text-5xl">
           {current ? current.title : "Between blocks"}
@@ -216,7 +505,7 @@ export function Dashboard({ initialBriefing, initialRecent }: DashboardProps) {
           {current
             ? `${formatHmRange(current.start, current.end)} · ${progress.remaining ?? "—"} min left · ${current.kind}`
             : briefing.next
-              ? `Next: ${briefing.next.title} at ${formatHm12(briefing.next.start)}`
+              ? `Next block at ${formatHm12(briefing.next.start)}`
               : "No upcoming block"}
         </p>
         <div className="mb-4 h-1.5 overflow-hidden rounded-full bg-ctp-surface0">
@@ -230,139 +519,145 @@ export function Dashboard({ initialBriefing, initialRecent }: DashboardProps) {
             <li key={`${index}-${line.slice(0, 24)}`}>{line}</li>
           ))}
         </ul>
-        <div className="flex flex-wrap gap-2.5">
-          <button
-            type="button"
-            className={primaryBtn}
-            onClick={() => logFormRef.current?.requestSubmit()}
-          >
-            Log this block
-          </button>
-          <button
-            type="button"
-            className={ghostBtn}
-            onClick={async () => {
-              try {
-                await logSession({ subject: "walk", minutes: 20, notes: "20-minute walk" });
-                setLogError(false);
-                setLogStatus("Walk logged.");
-              } catch (error) {
-                setLogError(true);
-                setLogStatus(error instanceof Error ? error.message : "Request failed");
-              }
-            }}
-          >
-            Walk done
-          </button>
-          <button
-            type="button"
-            className={ghostBtn}
-            onClick={async () => {
-              try {
-                await logSession({
-                  subject: "reading",
-                  minutes: 30,
-                  notes: "Reading block",
-                });
-                setLogError(false);
-                setLogStatus("Reading logged.");
-              } catch (error) {
-                setLogError(true);
-                setLogStatus(error instanceof Error ? error.message : "Request failed");
-              }
-            }}
-          >
-            Reading done
-          </button>
-        </div>
-      </section>
-
-      <div className="mb-4 grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
-        <article className={panelClass}>
-          <h3 className="mb-4 text-xl font-medium">Today</h3>
-          <ol className="m-0 list-none p-0">
-            {briefing.today.map((block) => {
-              const currentNow =
-                Boolean(current) &&
-                current?.start === block.start &&
-                current?.title === block.title;
-              const done = block.end_iso < briefing.now && !currentNow;
-              return (
-                <li
-                  key={`${block.start}-${block.title}`}
-                  className={`relative ml-2 grid grid-cols-[148px_1fr] gap-3 border-l-2 py-2 pl-4 ${
-                    currentNow
-                      ? "border-ctp-peach text-ctp-peach"
-                      : "border-ctp-surface0"
-                  } ${done ? "opacity-45" : ""}`}
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-2.5">
+          {current ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                ref={blockCtaRef}
+                type="button"
+                className={blockDone && busy !== "block" ? doneBtn : primaryBtn}
+                disabled={logging}
+                onClick={logCurrentBlock}
+              >
+                {blockLabel}
+              </button>
+              {blockDone && blockSession && !isOptimisticId(blockSession.id) ? (
+                <button
+                  type="button"
+                  className={undoLink}
+                  disabled={logging}
+                  aria-label={`Undo ${blockCtaName(current)}`}
+                  onClick={() => {
+                    void undoSession(blockSession, "Block undone.", () => {
+                      blockCtaRef.current?.focus();
+                    });
+                  }}
                 >
-                  <span
-                    className={`absolute top-3.5 -left-[5px] h-2.5 w-2.5 rounded-full ${
-                      currentNow ? "bg-ctp-peach" : "bg-ctp-overlay0"
-                    }`}
-                  />
-                  <span className="font-mono text-[13px] text-ctp-overlay0">
-                    {formatHmRange(block.start, block.end)}
-                  </span>
-                  <span>{block.title}</span>
-                </li>
-              );
-            })}
-          </ol>
-        </article>
-
-        <article className={panelClass}>
-          <h3 className="mb-4 text-xl font-medium">Week</h3>
-          <div className="mb-4 grid grid-cols-2 gap-2.5">
-            <div className="rounded-xl bg-ctp-base p-3">
-              <b className="block font-mono text-xl">{briefing.stats.dsa_problems_total || 0}</b>
-              <span className="text-xs text-ctp-overlay0">DSA problems logged</span>
+                  Undo
+                </button>
+              ) : null}
             </div>
-            <div className="rounded-xl bg-ctp-base p-3">
-              <b className="block font-mono text-xl">{briefing.stats.dsa_problems_week || 0}</b>
-              <span className="text-xs text-ctp-overlay0">DSA this week</span>
+          ) : null}
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-1">
+              <button
+                ref={walkCheckRef}
+                type="button"
+                className={walkDone && busy !== "walk" ? checkDoneBtn : checkBtn}
+                disabled={logging}
+                aria-pressed={walkDone}
+                onClick={() => toggleHabit("walk")}
+              >
+                <PersonSimpleWalk size={16} weight="bold" />
+                {walkDone ? "logged" : "Walk"}
+                {walkDone ? <Check size={14} weight="bold" /> : <Circle size={14} />}
+              </button>
+              {walkDone && walkSession && !isOptimisticId(walkSession.id) ? (
+                <button
+                  type="button"
+                  className={undoLinkDone}
+                  disabled={logging}
+                  aria-label="Undo walk"
+                  onClick={() => {
+                    void undoSession(walkSession, "Walk undone.", () => {
+                      walkCheckRef.current?.focus();
+                    });
+                  }}
+                >
+                  Undo
+                </button>
+              ) : null}
             </div>
-            <div className="rounded-xl bg-ctp-base p-3">
-              <b className="block font-mono text-xl">{briefing.stats.walk_days || 0}/7</b>
-              <span className="text-xs text-ctp-overlay0">Walk days</span>
-            </div>
-            <div className="rounded-xl bg-ctp-base p-3">
-              <b className="block font-mono text-xl">{studyH}h</b>
-              <span className="text-xs text-ctp-overlay0">Focus hours this week</span>
+            <div className="flex items-center gap-1">
+              <button
+                ref={readingCheckRef}
+                type="button"
+                className={readingDone && busy !== "reading" ? checkDoneBtn : checkBtn}
+                disabled={logging}
+                aria-pressed={readingDone}
+                onClick={() => toggleHabit("reading")}
+              >
+                <BookOpen size={16} weight="bold" />
+                {readingDone ? "logged" : "Reading"}
+                {readingDone ? <Check size={14} weight="bold" /> : <Circle size={14} />}
+              </button>
+              {readingDone && readingSession && !isOptimisticId(readingSession.id) ? (
+                <button
+                  type="button"
+                  className={undoLinkDone}
+                  disabled={logging}
+                  aria-label="Undo reading"
+                  onClick={() => {
+                    void undoSession(readingSession, "Reading undone.", () => {
+                      readingCheckRef.current?.focus();
+                    });
+                  }}
+                >
+                  Undo
+                </button>
+              ) : null}
             </div>
           </div>
-          <p className="m-0 text-ctp-overlay0">
-            {briefing.next
-              ? `Up next: ${briefing.next.title} at ${formatHmRange(briefing.next.start, briefing.next.end)}`
-              : "No further blocks today."}
-          </p>
-        </article>
-      </div>
-
-      <div className="mb-4 grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
-        <article className={panelClass}>
-          <h3 className="mb-4 text-xl font-medium">Log progress</h3>
+        </div>
+        <p
+          className={`mt-3 min-h-[1.2em] text-[13px] transition-opacity duration-150 ${
+            statusError ? "text-ctp-red" : "text-ctp-green"
+          }`}
+          aria-live="polite"
+        >
+          {status}
+        </p>
+        <details
+          className="mt-4"
+          onToggle={(event) => setExtraOpen(event.currentTarget.open)}
+        >
+          <summary className="today-extra-summary flex cursor-pointer list-none items-center gap-1.5 text-[13px] text-ctp-overlay0">
+            <CaretRight size={12} className={extraOpen ? "rotate-90" : ""} />
+            Add extra time
+          </summary>
           <form
-            id="log-form"
-            ref={logFormRef}
+            ref={extraFormRef}
+            className="mt-3"
             onSubmit={async (event) => {
               event.preventDefault();
               const form = event.currentTarget;
               const formData = new FormData(form);
-              try {
-                await logSession({
-                  subject: String(formData.get("subject") || "other"),
-                  minutes: Number(formData.get("minutes") || 0),
-                  problems_count: Number(formData.get("problems_count") || 0),
-                  notes: String(formData.get("notes") || ""),
-                });
-                const notesField = form.elements.namedItem("notes");
-                if (notesField instanceof HTMLTextAreaElement) notesField.value = "";
-                setLogError(false);
-                setLogStatus("Saved.");
-              } catch (error) {
-                setLogError(true);
-                setLogStatus(error instanceof Error ? error.message : "Request failed");
+              const subject = String(formData.get("subject") || "other");
+              const minutes = Math.max(0, Number(formData.get("minutes") || 0));
+              const problemsCount = Math.max(
+                0,
+                Number(formData.get("problems_count") || 0),
+              );
+              const notes = String(formData.get("notes") || "").trim();
+              if (minutes === 0 && problemsCount === 0 && !notes) {
+                setLiveStatus("Add minutes, problems, or notes.");
+                return;
+              }
+              const saved = await logSession(
+                {
+                  subject,
+                  minutes,
+                  problems_count: problemsCount,
+                  notes,
+                },
+                "form",
+                minutes === 0
+                  ? `Logged notes · ${subject}.`
+                  : `Logged ${minutes}m · ${subject}.`,
+              );
+              const notesField = form.elements.namedItem("notes");
+              if (saved && notesField instanceof HTMLTextAreaElement) {
+                notesField.value = "";
               }
             }}
           >
@@ -371,32 +666,24 @@ export function Dashboard({ initialBriefing, initialRecent }: DashboardProps) {
                 Subject
                 <select
                   name="subject"
-                  id="log-subject"
-                  defaultValue={
-                    current && LOG_SUBJECTS.includes(current.subject as (typeof LOG_SUBJECTS)[number])
-                      ? current.subject
-                      : "other"
-                  }
+                  defaultValue={extraDefaultSubject(current)}
                   className={inputClass}
                 >
                   <option value="dsa">DSA</option>
                   <option value="lld">LLD</option>
                   <option value="hld">HLD</option>
                   <option value="ai">AI</option>
-                  <option value="reading">Reading</option>
-                  <option value="walk">Walk</option>
                   <option value="review">Weekly review</option>
                   <option value="other">Other</option>
                 </select>
               </label>
               <label className={`${labelClass} min-w-[120px] flex-1`}>
-                Minutes
+                Extra minutes
                 <input
                   name="minutes"
                   type="number"
                   min={0}
                   step={5}
-                  defaultValue={60}
                   className={inputClass}
                 />
               </label>
@@ -417,39 +704,118 @@ export function Dashboard({ initialBriefing, initialRecent }: DashboardProps) {
               <textarea
                 name="notes"
                 rows={3}
-                placeholder="Problem names, patterns, what is still weak…"
+                placeholder="Problem names, patterns, leftover work…"
                 className={inputClass}
               />
             </label>
-            <button type="submit" className={primaryBtn}>
-              Save session
-            </button>
-            <p
-              className={`mt-2 min-h-[1.2em] text-[13px] ${logError ? "text-ctp-red" : "text-ctp-green"}`}
+            <button
+              type="submit"
+              className={extraSubmitPeach ? primaryBtn : ghostBtn}
+              disabled={logging}
             >
-              {logStatus}
-            </p>
+              {busy === "form" ? "Saving…" : "Save extra time"}
+            </button>
           </form>
-          <ul className="mt-4 list-none p-0">
-            {recent.slice(0, 8).map((row) => {
-              const when = formatDateTime12(new Date(row.ts), briefing.timezone);
-              const extra = row.problems_count ? ` · ${row.problems_count} problems` : "";
-              return (
-                <li
-                  key={row.id}
-                  className="border-t border-ctp-surface0 py-2.5 text-sm text-ctp-subtext1"
-                >
+        </details>
+        <ul className="mt-4 list-none p-0">
+          {recent.slice(0, 8).map((row) => {
+            const when = formatDateTime12(new Date(row.ts), briefing.timezone);
+            const extra = row.problems_count ? ` · ${row.problems_count} problems` : "";
+            return (
+              <li
+                key={row.id}
+                className="flex flex-wrap items-center justify-between gap-2 border-t border-ctp-surface0 py-2.5 text-sm text-ctp-subtext1"
+              >
+                <span>
                   <span className="mr-2 inline-block font-mono text-[11px] uppercase tracking-wider text-ctp-peach">
                     {row.subject}
                   </span>
                   {when} · {row.minutes}m{extra}
                   {row.notes ? ` — ${row.notes}` : ""}
+                </span>
+                {!isOptimisticId(row.id) ? (
+                  <button
+                    type="button"
+                    className={undoLink}
+                    disabled={logging}
+                    aria-label="Undo session"
+                    onClick={() => {
+                      void undoSession(row, "Session undone.");
+                    }}
+                  >
+                    Undo
+                  </button>
+                ) : null}
+              </li>
+            );
+          })}
+        </ul>
+      </section>
+
+      <div className="mb-4 grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
+        <article className={panelClass}>
+          <h3 className="mb-4 text-xl font-medium">Today</h3>
+          <ol className="m-0 list-none p-0">
+            {briefing.today.map((block) => {
+              const chip = timelineChip(block, briefing, recent, nowMs);
+              const isNow = chip === "Now";
+              return (
+                <li
+                  key={`${block.start}-${block.title}`}
+                  className={`relative ml-2 grid grid-cols-[148px_minmax(0,1fr)_auto] items-center gap-3 border-l-2 py-2 pl-4 ${
+                    isNow ? "border-ctp-peach text-ctp-peach" : "border-ctp-surface0"
+                  }`}
+                >
+                  <span
+                    className={`absolute top-3.5 -left-[5px] h-2.5 w-2.5 rounded-full ${pipClass(chip)}`}
+                  />
+                  <span className="font-mono text-[13px] text-ctp-overlay0">
+                    {formatHmRange(block.start, block.end)}
+                  </span>
+                  <span>{block.title}</span>
+                  <span className={chipClass(chip)}>{chip}</span>
                 </li>
               );
             })}
-          </ul>
+          </ol>
         </article>
 
+        <article className={panelClass}>
+          <h3 className="mb-4 text-xl font-medium">Week</h3>
+          <div className="mb-4 grid grid-cols-2 gap-2.5">
+            <div className={statCardClass("dsa", "today-week-dsa-total")}>
+              <ChartLine size={16} className="today-week-icon mb-1" weight="bold" />
+              <b className="block font-mono text-xl">{briefing.stats.dsa_problems_total || 0}</b>
+              <span className="text-xs text-ctp-subtext1">DSA problems logged</span>
+            </div>
+            <div className={statCardClass("dsa", "today-week-dsa-week")}>
+              <Target size={16} className="today-week-icon mb-1" weight="bold" />
+              <b className="block font-mono text-xl">{briefing.stats.dsa_problems_week || 0}</b>
+              <span className="text-xs text-ctp-subtext1">DSA this week</span>
+            </div>
+            <div className={statCardClass("walk", "today-week-walk")}>
+              <PersonSimpleWalk size={16} className="today-week-icon mb-1" weight="bold" />
+              <b className="block font-mono text-xl">{briefing.stats.walk_days || 0}/7</b>
+              <span className="text-xs text-ctp-subtext1">Walk days</span>
+            </div>
+            <div className={statCardClass("study", "today-week-study")}>
+              <Clock size={16} className="today-week-icon mb-1" weight="bold" />
+              <b className="block font-mono text-xl">{studyH}h</b>
+              <span className="text-xs text-ctp-subtext1">Focus hours this week</span>
+            </div>
+          </div>
+          <p className="m-0 text-ctp-overlay0">
+            {briefing.next
+              ? `Up next: ${briefing.next.title} at ${formatHmRange(briefing.next.start, briefing.next.end)}`
+              : "No further blocks today."}
+          </p>
+          <p className="mt-2 mb-0 text-ctp-subtext0">
+            Focus hours move only for DSA, LLD, HLD, and AI.
+          </p>
+        </article>
+      </div>
+
+      <div className="mb-4 grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
         <article className={panelClass}>
           <h3 className="mb-4 text-xl font-medium">Sunday review</h3>
           <form
@@ -534,12 +900,10 @@ export function Dashboard({ initialBriefing, initialRecent }: DashboardProps) {
             </p>
           </form>
         </article>
-      </div>
 
-      <section className={`${panelClass} grid items-center gap-4 md:grid-cols-[1fr_auto]`}>
-        <div>
+        <article className={panelClass}>
           <h3 className="text-xl font-medium">Apple Calendar</h3>
-          <p className="mt-2 mb-0 leading-relaxed text-ctp-overlay0">
+          <p className="mt-2 mb-4 leading-relaxed text-ctp-overlay0">
             Recurring study, dinner, walk, and reading blocks go into a dedicated
             calendar. Edit the week on{" "}
             <Link href="/routine" className="text-ctp-mauve hover:underline">
@@ -547,9 +911,9 @@ export function Dashboard({ initialBriefing, initialRecent }: DashboardProps) {
             </Link>{" "}
             first if you want a different plan.
           </p>
-        </div>
-        <CalendarSyncButton />
-      </section>
+          <CalendarSyncButton />
+        </article>
+      </div>
     </div>
   );
 }

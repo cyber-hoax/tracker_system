@@ -37,7 +37,7 @@ export function loadConfig(): AppConfig {
     : {};
 
   const portRaw = process.env.TRACKER_PORT || raw.port || "8765";
-  const openRaw = (raw.open_on_login || "true").toLowerCase();
+  const openRaw = (raw.open_on_login || "false").toLowerCase();
 
   return {
     timezone: process.env.TRACKER_TIMEZONE || raw.timezone || "Asia/Kolkata",
