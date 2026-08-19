@@ -6,6 +6,8 @@ import {
   planDesignFolderPromotion,
 } from "./tree";
 
+const AT = new Date("2026-08-01T00:00:00.000Z");
+
 describe("inferNoteType", () => {
   it("maps root DSA, Pattern, LLD, HLD, and AI paths", () => {
     expect(inferNoteType(["DSA"])).toBe("problem");
@@ -38,6 +40,9 @@ describe("assembleFolderTree", () => {
           slug: "two-sum",
           type: "problem",
           folderId: "dsa",
+          updatedAt: AT,
+          excerpt: "brute force then hash map",
+          patterns: ["Two pointers"],
         },
         {
           id: "n2",
@@ -45,6 +50,8 @@ describe("assembleFolderTree", () => {
           slug: "parking-lot",
           type: "lld",
           folderId: "lld",
+          updatedAt: AT,
+          excerpt: "",
         },
         {
           id: "n3",
@@ -52,6 +59,8 @@ describe("assembleFolderTree", () => {
           slug: "patterns-binary-search",
           type: "pattern",
           folderId: "pattern",
+          updatedAt: AT,
+          excerpt: "",
         },
       ],
     );
@@ -67,6 +76,10 @@ describe("assembleFolderTree", () => {
     expect(tree[0]?.notes[0]).toMatchObject({
       title: "Two Sum",
       href: "/dsa/two-sum",
+      excerpt: "brute force then hash map",
+      updatedAt: AT,
+      patterns: ["Two pointers"],
+      folderId: "dsa",
     });
     expect(tree[2]?.notes[0]).toMatchObject({
       href: "/notes/parking-lot",

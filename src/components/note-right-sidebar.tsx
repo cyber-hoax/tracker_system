@@ -31,7 +31,7 @@ export function NoteRightSidebar({ children }: { children: React.ReactNode }) {
   return (
     <aside
       aria-label="Note properties"
-      className={`flex shrink-0 flex-col overflow-hidden border-t border-ctp-surface0 bg-ctp-mantle lg:sticky lg:top-0 lg:h-screen lg:max-h-screen lg:border-t-0 lg:border-l ${
+      className={`flex shrink-0 flex-col overflow-hidden border-t border-ctp-surface0 bg-ctp-mantle lg:h-full lg:max-h-full lg:border-t-0 lg:border-l ${
         collapsed ? "w-full lg:w-[52px]" : "w-full lg:w-[248px]"
       }`}
     >

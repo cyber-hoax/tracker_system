@@ -1,4 +1,9 @@
 export const COLOR_THEMES = [
+  "struck",
+  "tensegrity",
+  "tensegrity-light",
+  "inkdrop",
+  "inkdrop-light",
   "mocha",
   "macchiato",
   "frappe",
@@ -7,6 +12,14 @@ export const COLOR_THEMES = [
   "kanagawa-dragon",
   "one-dark",
   "github-dark",
+] as const;
+
+export const STUDIO_COLOR_THEMES = [
+  "struck",
+  "tensegrity",
+  "tensegrity-light",
+  "inkdrop",
+  "inkdrop-light",
 ] as const;
 
 export type ColorTheme = (typeof COLOR_THEMES)[number];
@@ -22,6 +35,10 @@ export const FONT_THEMES = [
 export type FontTheme = (typeof FONT_THEMES)[number];
 
 export const CODE_THEMES = [
+  "struck",
+  "tensegrity",
+  "inkdrop",
+  "inkdrop-light",
   "mocha",
   "kanagawa",
   "kanagawa-dragon",
@@ -65,6 +82,11 @@ export type AppearanceSettings = {
 };
 
 export const COLOR_THEME_LABELS: Record<ColorTheme, string> = {
+  struck: "Struck cathode",
+  tensegrity: "Tensegrity",
+  "tensegrity-light": "Tensegrity Light",
+  inkdrop: "Inkdrop",
+  "inkdrop-light": "Inkdrop Light",
   mocha: "Catppuccin Mocha",
   macchiato: "Catppuccin Macchiato",
   frappe: "Catppuccin Frappé",
@@ -84,6 +106,10 @@ export const FONT_THEME_LABELS: Record<FontTheme, string> = {
 };
 
 export const CODE_THEME_LABELS: Record<CodeTheme, string> = {
+  struck: "Struck cathode",
+  tensegrity: "Tensegrity",
+  inkdrop: "Inkdrop",
+  "inkdrop-light": "Inkdrop Light",
   mocha: "Catppuccin Mocha",
   kanagawa: "Kanagawa Wave",
   "kanagawa-dragon": "Kanagawa Dragon",
@@ -201,6 +227,34 @@ export function appearanceForFontTheme(
     return { ...current, fontTheme };
   }
   return { ...current, fontTheme, ...FONT_PRESETS[fontTheme] };
+}
+
+const COLOR_CODE: Partial<Record<ColorTheme, CodeTheme>> = {
+  struck: "struck",
+  tensegrity: "tensegrity",
+  "tensegrity-light": "tensegrity",
+  inkdrop: "inkdrop",
+  "inkdrop-light": "inkdrop-light",
+};
+
+export function isInkdropDesk(theme: ColorTheme): boolean {
+  return theme === "inkdrop" || theme === "inkdrop-light";
+}
+
+export function appearanceForColorTheme(
+  current: AppearanceSettings,
+  colorTheme: ColorTheme,
+): AppearanceSettings {
+  const codeTheme = COLOR_CODE[colorTheme];
+  const withColor = {
+    ...current,
+    colorTheme,
+    ...(codeTheme ? { codeTheme } : {}),
+  };
+  if (isInkdropDesk(colorTheme)) {
+    return appearanceForFontTheme(withColor, "inter");
+  }
+  return withColor;
 }
 
 function cssValue(value: string): string | undefined {

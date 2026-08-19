@@ -194,7 +194,7 @@ export function NoteEditor({
     <>
       <main
         data-note-page
-        className="flex min-h-0 min-w-0 flex-1 flex-col px-5 pb-8 pt-6 lg:h-screen lg:overflow-hidden"
+        className="flex min-h-0 min-w-0 flex-1 flex-col px-5 pb-8 pt-6 lg:h-full lg:overflow-hidden"
       >
         <div className="mx-auto flex min-h-0 w-full max-w-[52rem] flex-1 flex-col gap-3 lg:overflow-hidden">
           <div className="flex shrink-0 items-start justify-between gap-3">
@@ -283,7 +283,7 @@ export function NoteEditor({
               type="button"
               onClick={toggleProperties}
               aria-expanded={propertiesOpen}
-              className="flex w-full items-center justify-between gap-2 font-mono text-xs uppercase tracking-wide text-ctp-mauve hover:text-ctp-lavender"
+              className="note-properties-heading flex w-full items-center justify-between gap-2 font-mono text-xs uppercase tracking-wide text-ctp-mauve hover:text-ctp-lavender"
             >
               <span>Properties</span>
               {propertiesOpen ? (

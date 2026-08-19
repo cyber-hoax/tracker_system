@@ -1,6 +1,7 @@
-import { and, asc, eq, isNull } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { folders, notes, type NoteType } from "@/db/schema";
+import { folders, links, notes, type NoteType } from "@/db/schema";
+import { noteListExcerpt } from "@/lib/ui/notebook";
 import {
   inferNoteType,
   assembleFolderTree,
@@ -24,11 +25,50 @@ export async function loadWorkspaceTree(): Promise<FolderTreeNode[]> {
         slug: notes.slug,
         type: notes.type,
         folderId: notes.folderId,
+        updatedAt: notes.updatedAt,
+        body: sql<string>`left(${notes.body}, 800)`,
       })
       .from(notes)
       .orderBy(asc(notes.title)),
   ]);
-  return assembleFolderTree(folderRows, noteRows);
+  const patternsByNote = await loadProblemPatterns(
+    noteRows.filter((row) => row.type === "problem").map((row) => row.id),
+  );
+  return assembleFolderTree(
+    folderRows,
+    noteRows.map((row) => ({
+      id: row.id,
+      title: row.title,
+      slug: row.slug,
+      type: row.type,
+      folderId: row.folderId,
+      updatedAt: row.updatedAt,
+      excerpt: noteListExcerpt(row.body),
+      patterns: patternsByNote.get(row.id) ?? [],
+    })),
+  );
+}
+
+async function loadProblemPatterns(
+  problemIds: string[],
+): Promise<Map<string, string[]>> {
+  const byNote = new Map<string, string[]>();
+  if (problemIds.length === 0) return byNote;
+  const rows = await db
+    .select({
+      fromId: links.fromId,
+      title: notes.title,
+    })
+    .from(links)
+    .innerJoin(notes, eq(links.toId, notes.id))
+    .where(and(inArray(links.fromId, problemIds), eq(links.kind, "pattern")))
+    .orderBy(asc(notes.title));
+  for (const row of rows) {
+    const list = byNote.get(row.fromId) ?? [];
+    if (!list.includes(row.title)) list.push(row.title);
+    byNote.set(row.fromId, list);
+  }
+  return byNote;
 }
 
 export async function folderPathNames(folderId: string): Promise<string[]> {

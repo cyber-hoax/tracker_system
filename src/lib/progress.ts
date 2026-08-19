@@ -1,7 +1,8 @@
-import { and, desc, eq, gte, lt, sql } from "drizzle-orm";
+import { and, desc, eq, gte, lt } from "drizzle-orm";
 import { db } from "@/db";
 import { sessions, weeklyReviews } from "@/db/schema";
 import { loadConfig } from "./config";
+import { weekDsaProblemStats } from "./dsa-problems";
 import {
   addCalendarDays,
   pythonWeekday,
@@ -9,6 +10,7 @@ import {
   zonedParts,
   zonedWallToDate,
 } from "./timezone";
+import { listProblems } from "./zettel/notes";
 import type {
   ReviewRecord,
   SessionRecord,
@@ -154,17 +156,14 @@ export async function statsForWeek(moment: Date): Promise<WeekStats> {
   const startDt = zonedWallToDate(sy, sm, sd, 0, 0, timeZone);
   const endDt = zonedWallToDate(end.year, end.month, end.day, 0, 0, timeZone);
 
-  const rows = await db
-    .select()
-    .from(sessions)
-    .where(and(gte(sessions.ts, startDt), lt(sessions.ts, endDt)));
-
-  const [totalRow] = await db
-    .select({
-      n: sql<number>`coalesce(sum(${sessions.problemsCount}), 0)`,
-    })
-    .from(sessions)
-    .where(eq(sessions.subject, "dsa"));
+  const [rows, problems, review] = await Promise.all([
+    db
+      .select()
+      .from(sessions)
+      .where(and(gte(sessions.ts, startDt), lt(sessions.ts, endDt))),
+    listProblems(),
+    getReview(start),
+  ]);
 
   const bySubject: Record<string, SubjectBucket> = {};
   const walkDays = new Set<string>();
@@ -184,17 +183,22 @@ export async function statsForWeek(moment: Date): Promise<WeekStats> {
     if (row.subject === "reading") readingDays.add(day);
   }
 
+  const solved = weekDsaProblemStats(
+    problems.map((problem) => problem.lastSolved),
+    start,
+  );
+
   return {
     week_start: start,
     by_subject: bySubject,
     walk_days: walkDays.size,
     reading_days: readingDays.size,
-    dsa_problems_total: Number(totalRow?.n ?? 0),
-    dsa_problems_week: bySubject.dsa?.problems ?? 0,
+    dsa_problems_total: solved.dsa_problems_total,
+    dsa_problems_week: solved.dsa_problems_week,
     study_minutes_week: ["dsa", "lld", "hld", "ai"].reduce(
       (sum, key) => sum + (bySubject[key]?.minutes ?? 0),
       0,
     ),
-    review: await getReview(start),
+    review,
   };
 }

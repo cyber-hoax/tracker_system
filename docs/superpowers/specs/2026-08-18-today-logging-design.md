@@ -15,8 +15,8 @@ Success looks like:
 
 - During a study/break block, one opaque peach pill logs it (`Log DSA · 90m`, `Log decompression · 30m`).
 - Walk and reading are daily checks, unique per `Asia/Kolkata` calendar day (the briefing timezone), not peer CTAs.
-- The Today list shows exactly one chip per row: Logged / Now / Remaining / Missed. Missed means the block’s end has passed and no matching session exists. The list does not fade rows just because the clock moved.
-- Undo is inline beside the control that created the session. No confirm dialog. After undo, the control is the log control again.
+- The Today list shows exactly one chip per row: Logged / Now / Remaining / Missed. Missed means the block’s end has passed and no matching session exists. Every unlogged row is tappable (Missed, Now, or Remaining) — morning routine, commute, work, decompression, break, dinner, shutdown, DSA, walk, reading, and any other Today block. The list does not fade rows just because the clock moved.
+- Undo is inline beside the control that created the session. No confirm dialog. After undo, the control is the log control again. Timeline Logged rows get the same inline Undo (DELETE), so a missed block can be logged, undone, and logged again.
 - Extra time (notes, DSA problems, extra minutes) is a collapsed add-on, not a second logger for the current block.
 - Week stats use four distinct tints. Today panels use softer glass (v2b). Sidebar chrome stays Today / Chat / Routine / Reports.
 
@@ -24,7 +24,7 @@ Success looks like:
 
 - Do not add a unique database constraint on `extra.block_key`. Uniqueness stays client-side (`alreadyLogged` and the new helpers below), as it is today.
 - Do not soft-delete sessions into `trash_snapshots`. Undo is a hard delete of that row.
-- Do not make the timeline tap-to-log. Past missed study blocks are not backfilled from the list.
+- Do not skip any Today row kind from timeline logging. Dinner, commute, work, morning routine, and shutdown are loggable the same way as DSA. Remaining (not-yet) rows are also loggable when the user already did them or wants to check them off.
 - Do not add server-side “already logged” rejection on POST. POST stays append-only. Duplicate-tab races can create two rows; undo removes one; the control stays in the done state until no matching session remains.
 - Do not introduce a snackbar/toast stack. The now-card status line is the only log/undo feedback (optional backup to inline undo, not a replacement for it).
 - Do not change Chat, Routine, Reports, Graph, Search, or Settings. Do not add a product, brand, or nav item.
@@ -112,11 +112,24 @@ Not a parallel logger for the current hour.
 - Tapping nothing cannot produce `No current block to log.` That string is unused once the CTA is omitted. If a stale click arrives, ignore it.
 - Timeline: no row gets the Now chip.
 
-### Missed study block
+### Log any Today timeline block
 
-Once `now >= block.end_iso` and no keyed session exists, the chip is Missed. The operator cannot tap the row to log it. They can record leftover work only as extra time (proof in recent, chip stays Missed). That is intentional.
+Any Today row can be logged at any time by tapping its chip — Missed (past, not logged), Now (current hour), or Remaining (not yet started). That includes morning routine, commute, work, decompression, break, dinner, shutdown, DSA, walk, and reading. “Anytime” means they can backfill a missed block **or** check off a remaining block when they already did it (or want to mark it done). No modal.
 
-A walk/reading row that was Missed becomes Logged if the daily check is completed later the same day.
+Tap the chip (the row’s log control) to log that block the same way as the peach CTA: `POST /api/sessions` with that row’s `block_key`, title as notes, `blockCtaMinutes`, and `blockLogSubject` (`other` is fine for work / dinner / commute / morning / shutdown). Optimistic insert first; the chip becomes Logged immediately. While the request is in flight the row is pending/disabled. After the POST uuid arrives, inline `Undo` appears on the row. Undo DELETEs that session (same path as now-card undo). The chip returns to Missed, Now, or Remaining as the clock dictates. Tap again to re-log. No cooldown.
+
+Uniqueness is **per block**, not “whatever `briefing.current` is.” Logging missed DSA while Now is HLD must not be blocked by HLD’s logged state, and must not mark HLD logged.
+
+The peach now-card CTA still logs **the current block only**. Timeline taps log the **tapped row**. Extra time still cannot convert any row to Logged (`block_key` stays unset).
+
+`canLogFromTimeline(block, chip)`:
+
+- **Missed** — always loggable. Any kind, including `meal`, `maintenance`, `buffer`, `work`, `shutdown`, `study`, `walk`, `reading`, `break`, `review`.
+- **Now** — loggable (same payload as the peach CTA for that row). Primary log control for the current hour stays the peach now-card CTA; the Now chip is an extra path to the same POST.
+- **Remaining** — loggable. Future/not-yet rows can be checked off when the user already did them.
+- **Logged** — not a log control; the sibling Undo DELETEs. After undo they can log again.
+
+A walk/reading row that was Missed also becomes Logged if the daily check is completed later the same day (habit match, no `block_key` required for the chip). Tapping Missed/Now/Remaining walk/reading **does** set `block_key`.
 
 ## Visual
 
@@ -192,18 +205,18 @@ Exactly one chip, evaluated in this order against live `nowMs` (1s tick), not st
 
 These four cover every row: there is no in-window hole.
 
-Chips are not interactive and not in the tab order. Do not set `aria-hidden`; the word Logged / Now / Remaining / Missed is the name. Rail and pip stay: peach while Now, `surface0` / overlay pip otherwise.
+Logged chips stay non-interactive text; sibling Undo uses `Undo {name}`. Missed, Now, and Remaining chips are `<button type="button">` in the tab order; visible label stays `Missed` / `Now` / `Remaining` / `Logging…`. Accessible name for a loggable control: `Log {name}`. Do not set `aria-hidden`. Rail and pip stay: peach while Now, `surface0` / overlay pip otherwise. No new modal. Sentence-case. Softer glass / existing chrome unchanged.
 
 ### Week cards
 
-Four nested wells, 2×2, each a distinct tint on `base` (not four identical dark tiles):
+Four nested wells, 2×2, each a distinct tint on `base` (not four identical dark tiles). Values come from `weekCardValues(briefing.stats)` in `src/lib/dashboard-log.ts` (optimistic `applyLoggedSession` / `applyUnloggedSession` plus briefing refetch — the same path walk days already use).
 
-| Key | Caption | Tint |
-|---|---|---|
-| `dsa` (total) | DSA problems logged | `color-mix(in srgb, var(--ctp-blue) 14%, var(--ctp-base))` |
-| `dsa` (week) | DSA this week | `color-mix(in srgb, var(--ctp-teal) 14%, var(--ctp-base))` |
-| `walk` | Walk days (`{n}/7`) | `color-mix(in srgb, var(--ctp-green) 14%, var(--ctp-base))` |
-| `study` | Focus hours this week | `color-mix(in srgb, var(--ctp-mauve) 14%, var(--ctp-base))` |
+| Key | Caption | Value | Tint |
+|---|---|---|---|
+| `dsa` (total) | DSA problems logged | Problem notes with `Last Solved Date` in the current week (zettelkasten / DSA page). Slot Check DSA block logs stay `problems_count` 0 and do not invent this number. Extra time with a problem count also does not invent it. | `color-mix(in srgb, var(--ctp-blue) 14%, var(--ctp-base))` |
+| `dsa` (week) | DSA this week | Same source as Reports “Questions” for the briefing-day week: problem notes with `Last Solved Date` in the current week (`dsa_problems_week`). A Slot Check / extra-time DSA session does not count as a question. | `color-mix(in srgb, var(--ctp-teal) 14%, var(--ctp-base))` |
+| `walk` | Walk days (`{n}/7`) | Unique `Asia/Kolkata` days with a walk session this week. Second walk the same day does not increment. | `color-mix(in srgb, var(--ctp-green) 14%, var(--ctp-base))` |
+| `study` | Focus hours this week | `study_minutes_week / 60`. Minutes from `dsa` / `lld` / `hld` / `ai` only. A 90m DSA block log must move this card even when `problems_count` is 0. There are no separate LLD/HLD/AI wells. | `color-mix(in srgb, var(--ctp-mauve) 14%, var(--ctp-base))` |
 
 Include a 16px Phosphor icon in overlay0 on each well: `ChartLine` (DSA total), `Target` (DSA week), `PersonSimpleWalk` (walk), `Clock` (focus). Number stays 1.25rem mono. Green flash ring on log unchanged. Both DSA wells flash when `subject === "dsa"` (existing `flashStat("dsa")`).
 
@@ -226,8 +239,8 @@ Keep `Dashboard` in `src/components/dashboard.tsx` as the Today composer. Do not
 | File | Change |
 |---|---|
 | `src/components/dashboard.tsx` | Slot Check UI: CTA, daily checks, chips, extra time, recent-row undo, glass classes, tinted week cells, single status line, skip poll while `busy`. Remove the three-equal-pills row and the `Log progress` form panel. |
-| `src/lib/dashboard-log.ts` | `alreadyLogged` block match without in-window subject fallback; add `applyUnloggedSession`, `sessionForQuickLog`, `timelineChip`, `blockCtaName`, `blockCtaMinutes`. |
-| `src/lib/dashboard-log.test.ts` | Cover the new helpers and the extra-time-does-not-lock-CTA case. |
+| `src/lib/dashboard-log.ts` | `alreadyLogged` block match without in-window subject fallback; add `applyUnloggedSession`, `sessionForQuickLog`, `sessionForBlock`, `alreadyLoggedBlock`, `timelineChip`, `blockCtaName`, `blockCtaMinutes`, `blockLogPayload`, `extraTimeLogBody`, `canLogFromTimeline`, `weekCardValues` (DSA this week = this week’s Last Solved Date notes, same as Reports Questions). |
+| `src/lib/dashboard-log.test.ts` | Cover the new helpers, extra-time-does-not-lock-CTA, missed-row `block_key`, uniqueness per block, and undo restoring Missed. |
 | `src/lib/progress.ts` | Add `deleteSession(id: string): Promise<SessionRecord \| null>` — `DELETE FROM sessions WHERE id = $id RETURNING *`. Hard delete. |
 | `src/app/api/sessions/[id]/route.ts` | **New.** `DELETE` only. |
 | `src/app/api/sessions/route.ts` | Unchanged GET/POST. |
@@ -257,11 +270,17 @@ When `current.subject` or `current.kind` is `walk` or `reading`, treat the block
 
 `sessionForQuickLog("block")` returns the latest matching current-block session (prefer `block_key`). Walk/reading: latest that calendar day. Extra-time row undo uses the row’s `id`.
 
+`alreadyLoggedBlock(block, briefing, recent)` is `blockMatchesSession` for **that row**, not `briefing.current`. `sessionForBlock` is the same lookup for undo on a timeline row.
+
+`blockLogPayload(block, ymd)` is the peach CTA body: subject, minutes, notes=`title`, `extra.block_key` / `block_start` / `block_title`. Timeline Missed / Now / Remaining taps use this helper so they cannot drift from the CTA. Work, dinner, commute, morning, and shutdown POST `subject: "other"` when they have no named log subject.
+
+`extraTimeLogBody` never includes `extra` / `block_key`. Extra time must not silently convert Missed → Logged.
+
 ### POST log
 
 Existing `POST /api/sessions`. Body unchanged. Optimistic path unchanged: prepend `optimistic-{timestamp}`, `applyLoggedSession`, replace id on response, `refresh()`. If `busy` is set, ignore a second tap.
 
-`busy` union: `"block" | "walk" | "reading" | "form" | "undo"`. One in-flight mutation.
+`busy` union: `"block" | "walk" | "reading" | "form" | "undo" | "timeline"`. One in-flight mutation. Timeline Missed / Now / Remaining logs use `"timeline"` so the peach CTA does not switch to `Logging…` while another row is posting.
 
 30s poll: `if (busy) return;` before `refresh()`, so a mid-flight undo is not overwritten by GET.
 
@@ -283,9 +302,11 @@ Optimistic: remove the row from `recent`, `applyUnloggedSession` (inverse of `ap
 | Action | `block_key` | Counts as block logged | Counts as walk/reading day |
 |---|---|---|---|
 | Peach current-block log | yes | yes | yes if subject is walk/reading |
+| Timeline Missed / Now / Remaining tap | yes | yes, that row only | yes if subject is walk/reading |
 | Walk/reading check | only if current is that habit | only that habit row | yes |
 | Extra time | never | never | never (walk/reading omitted from subject select) |
 | Recent-row undo | n/a | no once that row is gone | no if it was the day’s last walk/reading |
+| Timeline-row undo | n/a | chip returns to Missed once that row is gone | no if it was the day’s last walk/reading |
 
 ## Error handling
 
@@ -310,7 +331,7 @@ Sunday review errors stay on the review status line (unchanged). They do not use
 - Walk/Reading: `<button type="button" aria-pressed={done}>`. Not a native checkbox (undo is a sibling when done; the whole control stays one focus target — when done, the check button remains focused; Undo is the next tab stop).
 - Chips: text labels Logged / Now / Remaining / Missed. Color is not the only signal.
 - **Focus stays on the control that was activated.** Do not `.focus()` the status line. After undo, the log button is the same DOM node (or take focus on the peach CTA if the undo button unmounts — move focus to the log button in that case so focus is not dumped to `body`).
-- Keyboard: CTA, Undo, checks, extra-time submit, and recent-row Undo are `<button type="button">` (submit is `type="submit"`). Extra time is a native `<details>` / `<summary>` labeled `Add extra time`.
+- Keyboard: CTA, Undo, checks, extra-time submit, recent-row Undo, and loggable Missed/Now/Remaining chips are `<button type="button">` (submit is `type="submit"`). Extra time is a native `<details>` / `<summary>` labeled `Add extra time`.
 - `prefers-reduced-motion: reduce`: skip the 1.4s week ring. Keep `transition-colors duration-150` (color, not motion).
 
 ## Testing
@@ -325,6 +346,12 @@ In `src/lib/dashboard-log.test.ts`:
 4. `timelineChip`: current → Now; keyed past → Logged; future with no session → Remaining; ended with no session → Missed; current+keyed still Now; walk row Logged when a day-level walk exists without `block_key`.
 5. `blockCtaName` / minutes: DSA → `Log DSA · 90m`; Decompression 30 → name `decompression` minutes 30.
 6. `sessionForQuickLog` returns the latest matching row, ignores extra-time DSA for `"block"`.
+7. `blockLogPayload` for a missed DSA row sets `extra.block_key` (and start/title) exactly as the peach CTA would.
+8. `extraTimeLogBody` does not set `block_key`; applying that session leaves a missed DSA chip as Missed.
+9. Uniqueness is per `block_key`: a keyed HLD session and a same-subject extra-time DSA session do not mark a missed DSA row logged.
+10. After `applyLoggedSession` of a keyed missed DSA, chip is Logged; `applyUnloggedSession` restores Missed.
+11. `canLogFromTimeline`: Missed DSA / decompression / work / dinner / commute / morning true; Remaining true; Logged false. Missed work `blockLogPayload` sets `block_key` and `subject: "other"`; extra time still does not.
+12. Week cards via `weekCardValues`: a DSA block log with `problems_count` 0 increments focus hours and leaves **DSA this week** and **DSA problems logged** unchanged (both cards are this week's Last Solved Date problem notes, same as Reports Questions — not session count or `problems_count`). Walk/reading still unique days.
 
 `deleteSession` talks to Postgres. Do not add a DB integration test in this spec. Route handler can stay untested at HTTP level; the helper behavior is what unit tests lock.
 
@@ -334,7 +361,7 @@ Manual check after implementation (not automated): log, undo, re-log; extra time
 
 - Reports page, contribution graph, LeetCode ingest, chat, routine editor, calendar event generation, Sunday review fields, appearance themes beyond Today glass using existing CSS variables.
 - Streaks, badges, weekly hour meters, notifications, undo history, redo stacks.
-- Logging future blocks, logging from the timeline, editing a session in place (undo + re-log is the edit).
+- Editing a session in place (undo + re-log is the edit). Remaining/future blocks **are** loggable from the timeline.
 - Server uniqueness, migrations, new tables, soft delete.
 - New nav items, renaming the app, restyling the sidebar.
 - Replacing JetBrains Mono, adding a second typeface, or a marketing hero.
@@ -349,7 +376,7 @@ Checked after the first draft and fixed in this file:
 2. **Consistency:** Extra time must not lock the peach CTA — `alreadyLogged("block")` no longer uses the in-window subject fallback. Extra-time submit is ghost while the unlogged peach CTA is visible, so two peach fills never coexist. Walk/reading omitted from extra-time subjects so a diary POST cannot mark the daily check. Timeline Logged for habits still follows the daily session.
 3. **Scope:** One page, one new DELETE route, helpers in `dashboard-log.ts`, glass CSS, DESIGN.md note. Fits a single implementation plan. Reports and sidebar chrome are untouched.
 4. **Ambiguity resolved:**
-   - Missed study blocks are not backfillable from the list.
+   - Every Today row is loggable from the list (Missed, Now, or Remaining; same POST as the peach CTA, including work/dinner/commute/morning). Extra time still never sets `block_key`. The peach CTA still logs only `briefing.current`.
    - Current + logged chip is **Now** (current wins); CTA still shows **Logged** + Undo.
    - In-window row with a stale `briefing.current` still gets **Now** (no unlabeled hole).
    - Undo on an optimistic id is omitted until the POST uuid arrives.

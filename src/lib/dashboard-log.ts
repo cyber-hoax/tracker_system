@@ -1,5 +1,5 @@
 import { ymdInZone } from "./timezone";
-import type { Briefing, EnrichedBlock, SessionRecord, SubjectBucket } from "./types";
+import type { Briefing, EnrichedBlock, SessionRecord, SubjectBucket, WeekStats } from "./types";
 
 const STUDY_SUBJECTS = new Set(["dsa", "lld", "hld", "ai"]);
 const NAMED_LOG_SUBJECTS = new Set([
@@ -142,6 +142,103 @@ export function blockCtaMinutes(block: { minutes: number }): number {
   return Math.max(5, Math.round(block.minutes / 5) * 5);
 }
 
+export function canLogFromTimeline(
+  _block: { kind: string; subject: string },
+  chip: TimelineChip,
+): boolean {
+  return chip !== "Logged";
+}
+
+export function alreadyLoggedBlock(
+  block: EnrichedBlock,
+  briefing: Briefing,
+  recent: SessionRecord[],
+): boolean {
+  return blockMatchesSession(block, briefing, recent);
+}
+
+export function blockLogPayload(
+  block: EnrichedBlock,
+  ymd: string,
+): {
+  subject: string;
+  minutes: number;
+  notes: string;
+  extra: {
+    block_key: string;
+    block_start: string;
+    block_title: string;
+  };
+} {
+  return {
+    subject: blockLogSubject(block),
+    minutes: blockCtaMinutes(block),
+    notes: block.title,
+    extra: {
+      block_key: blockLogKey(block, ymd),
+      block_start: block.start,
+      block_title: block.title,
+    },
+  };
+}
+
+export function weekCardValues(stats: WeekStats): {
+  dsaProblemsLogged: number;
+  dsaThisWeek: number;
+  walkDays: number;
+  studyMinutesWeek: number;
+} {
+  return {
+    dsaProblemsLogged: stats.dsa_problems_week || 0,
+    dsaThisWeek: stats.dsa_problems_week || 0,
+    walkDays: stats.walk_days || 0,
+    studyMinutesWeek: stats.study_minutes_week || 0,
+  };
+}
+
+export function extraTimeLogBody(input: {
+  subject: string;
+  minutes: number;
+  notes: string;
+  problems_count: number;
+}): {
+  subject: string;
+  minutes: number;
+  notes: string;
+  problems_count: number;
+} {
+  return {
+    subject: input.subject,
+    minutes: input.minutes,
+    notes: input.notes,
+    problems_count: input.problems_count,
+  };
+}
+
+export function sessionForBlock(
+  block: { start: string; title: string; subject: string; kind?: string },
+  briefing: Briefing,
+  recent: SessionRecord[],
+): SessionRecord | null {
+  const timeZone = briefing.timezone;
+  const todayYmd = briefingDay(briefing);
+  const key = blockLogKey(block, todayYmd);
+  const keyed = recent.find((row) => extraBlockKey(row.extra) === key);
+  if (keyed) return keyed;
+  const legacy =
+    recent.find((row) => {
+      return (
+        extraString(row.extra, "block_start") === block.start &&
+        extraString(row.extra, "block_title") === block.title &&
+        dayOf(row.ts, timeZone) === todayYmd
+      );
+    }) ?? null;
+  if (legacy) return legacy;
+  const habit = habitKind(block);
+  if (!habit) return null;
+  return sessionForQuickLog(habit, briefing, recent);
+}
+
 export function timelineChip(
   block: EnrichedBlock,
   briefing: Briefing,
@@ -178,18 +275,7 @@ export function sessionForQuickLog(
 
   const current = briefing.current;
   if (!current) return null;
-  const key = blockLogKey(current, todayYmd);
-  const keyed = recent.find((row) => extraBlockKey(row.extra) === key);
-  if (keyed) return keyed;
-  return (
-    recent.find((row) => {
-      return (
-        extraString(row.extra, "block_start") === current.start &&
-        extraString(row.extra, "block_title") === current.title &&
-        dayOf(row.ts, timeZone) === todayYmd
-      );
-    }) ?? null
-  );
+  return sessionForBlock(current, briefing, recent);
 }
 
 export function applyLoggedSession(input: {
@@ -232,7 +318,6 @@ export function applyLoggedSession(input: {
     readingDays += 1;
   }
 
-  const dsaProblems = session.subject === "dsa" ? session.problems_count || 0 : 0;
   const studyMinutes = STUDY_SUBJECTS.has(session.subject) ? session.minutes || 0 : 0;
 
   const stats = {
@@ -240,8 +325,6 @@ export function applyLoggedSession(input: {
     by_subject: bySubject,
     walk_days: walkDays,
     reading_days: readingDays,
-    dsa_problems_week: briefing.stats.dsa_problems_week + dsaProblems,
-    dsa_problems_total: briefing.stats.dsa_problems_total + dsaProblems,
     study_minutes_week: briefing.stats.study_minutes_week + studyMinutes,
   };
 
@@ -301,7 +384,6 @@ export function applyUnloggedSession(input: {
   walkDays = Math.max(walkDays, distinctDays("walk"));
   readingDays = Math.max(readingDays, distinctDays("reading"));
 
-  const dsaProblems = session.subject === "dsa" ? session.problems_count || 0 : 0;
   const studyMinutes = STUDY_SUBJECTS.has(session.subject) ? session.minutes || 0 : 0;
 
   const stats = {
@@ -309,8 +391,6 @@ export function applyUnloggedSession(input: {
     by_subject: bySubject,
     walk_days: walkDays,
     reading_days: readingDays,
-    dsa_problems_week: Math.max(0, briefing.stats.dsa_problems_week - dsaProblems),
-    dsa_problems_total: Math.max(0, briefing.stats.dsa_problems_total - dsaProblems),
     study_minutes_week: Math.max(0, briefing.stats.study_minutes_week - studyMinutes),
   };
 

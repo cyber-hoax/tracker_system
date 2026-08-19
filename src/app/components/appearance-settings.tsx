@@ -6,6 +6,7 @@ import {
   updateAppearanceAction,
 } from "@/app/actions/appearance";
 import {
+  appearanceForColorTheme,
   appearanceForFontTheme,
   CODE_THEME_LABELS,
   CODE_THEMES,
@@ -13,9 +14,18 @@ import {
   COLOR_THEMES,
   FONT_THEME_LABELS,
   FONT_THEMES,
+  STUDIO_COLOR_THEMES,
   type AppearanceSettings,
   type MarkdownTweaks,
 } from "@/lib/appearance";
+
+const STUDIO_COLOR = new Set<string>(STUDIO_COLOR_THEMES);
+const CLASSIC_COLOR_THEMES = COLOR_THEMES.filter(
+  (theme) => !STUDIO_COLOR.has(theme),
+);
+const STUDIO_CODE_THEMES = ["struck", "tensegrity", "inkdrop", "inkdrop-light"] as const;
+const STUDIO_CODE = new Set<string>(STUDIO_CODE_THEMES);
+const CLASSIC_CODE_THEMES = CODE_THEMES.filter((theme) => !STUDIO_CODE.has(theme));
 
 const MD_FIELDS: { key: keyof MarkdownTweaks; label: string; hint: string }[] = [
   { key: "h1Color", label: "H1 color", hint: "#cdd6f4" },
@@ -108,18 +118,29 @@ export function AppearanceSettings({
           <select
             value={appearance.colorTheme}
             onChange={(event) =>
-              persist({
-                ...appearance,
-                colorTheme: event.target.value as AppearanceSettings["colorTheme"],
-              })
+              persist(
+                appearanceForColorTheme(
+                  appearance,
+                  event.target.value as AppearanceSettings["colorTheme"],
+                ),
+              )
             }
             className="w-full border border-ctp-surface1 bg-ctp-mantle px-2 py-1.5 text-sm"
           >
-            {COLOR_THEMES.map((theme) => (
-              <option key={theme} value={theme}>
-                {COLOR_THEME_LABELS[theme]}
-              </option>
-            ))}
+            <optgroup label="Studio">
+              {STUDIO_COLOR_THEMES.map((theme) => (
+                <option key={theme} value={theme}>
+                  {COLOR_THEME_LABELS[theme]}
+                </option>
+              ))}
+            </optgroup>
+            <optgroup label="Classic">
+              {CLASSIC_COLOR_THEMES.map((theme) => (
+                <option key={theme} value={theme}>
+                  {COLOR_THEME_LABELS[theme]}
+                </option>
+              ))}
+            </optgroup>
           </select>
         </label>
       </section>
@@ -146,11 +167,20 @@ export function AppearanceSettings({
             }
             className="w-full border border-ctp-surface1 bg-ctp-mantle px-2 py-1.5 text-sm"
           >
-            {CODE_THEMES.map((theme) => (
-              <option key={theme} value={theme}>
-                {CODE_THEME_LABELS[theme]}
-              </option>
-            ))}
+            <optgroup label="Studio">
+              {STUDIO_CODE_THEMES.map((theme) => (
+                <option key={theme} value={theme}>
+                  {CODE_THEME_LABELS[theme]}
+                </option>
+              ))}
+            </optgroup>
+            <optgroup label="Classic">
+              {CLASSIC_CODE_THEMES.map((theme) => (
+                <option key={theme} value={theme}>
+                  {CODE_THEME_LABELS[theme]}
+                </option>
+              ))}
+            </optgroup>
           </select>
         </label>
       </section>

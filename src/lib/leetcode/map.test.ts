@@ -47,13 +47,13 @@ describe("mapDifficulty", () => {
 });
 
 describe("mapPatterns", () => {
-  it("maps LeetCode tags onto existing pattern hubs when possible", () => {
+  it("maps hash table, hashmap, and hash set onto one hub", () => {
     expect(
       mapPatterns(
-        ["Dynamic Programming", "Binary Search", "Array"],
-        ["dp", "binary search", "two pointers"],
+        ["Hash Table", "HashMap", "Hash Set", "Array"],
+        ["hash table", "two pointers"],
       ),
-    ).toEqual(["dp", "binary search"]);
+    ).toEqual(["hash table"]);
   });
 });
 

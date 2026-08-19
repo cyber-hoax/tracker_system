@@ -9,6 +9,12 @@ import {
   type NoteType,
 } from "@/db/schema";
 import { PATTERN_PROPERTY_KEY } from "./constants";
+import {
+  canonicalPatternTitle,
+  patternAliasSlugs,
+  pickCanonicalPatternNote,
+  titlesForCanonical,
+} from "./pattern-aliases";
 import { patternDbSlug, slugify } from "./slug";
 import { isWikilinkType, wikilinkTargetsFromValue } from "./values";
 import { displayWikilink, parseWikilink, wikilinkLeaf } from "./wikilink";
@@ -117,7 +123,7 @@ async function resolveOrCreatePatternNote(raw: string, executor: Executor) {
   const existing = await findPatternNote(raw, executor);
   if (existing) return existing;
 
-  const title = displayWikilink(raw);
+  const title = canonicalPatternTitle(displayWikilink(raw));
   const slug = await uniqueSlug(patternDbSlug(title), executor);
   const folderId = await defaultFolderIdForType("pattern");
   const [created] = await executor
@@ -134,30 +140,34 @@ async function resolveOrCreatePatternNote(raw: string, executor: Executor) {
 }
 
 export async function findPatternNote(raw: string, executor: Executor = db) {
-  const title = displayWikilink(raw);
-  const kebab = slugify(title);
-  const { target } = parseWikilink(raw);
-  const leaf = wikilinkLeaf(target);
+  const canonical = canonicalPatternTitle(raw);
+  const titles = titlesForCanonical(canonical);
   const slugs = [
-    kebab,
-    patternDbSlug(title),
-    patternDbSlug(leaf),
-    slugify(leaf),
+    ...new Set([
+      ...patternAliasSlugs(canonical),
+      slugify(canonical),
+      patternDbSlug(canonical),
+    ]),
   ];
 
   const bySlug = await executor
     .select()
     .from(notes)
-    .where(and(eq(notes.type, "pattern"), inArray(notes.slug, slugs)))
-    .limit(1);
-  if (bySlug[0]) return bySlug[0];
+    .where(and(eq(notes.type, "pattern"), inArray(notes.slug, slugs)));
 
+  const titleFilters = titles.map((title) => ilike(notes.title, title));
+  const titleMatch =
+    titleFilters.length === 1 ? titleFilters[0]! : or(...titleFilters);
   const byTitle = await executor
     .select()
     .from(notes)
-    .where(and(eq(notes.type, "pattern"), ilike(notes.title, title)))
-    .limit(1);
-  return byTitle[0] ?? null;
+    .where(and(eq(notes.type, "pattern"), titleMatch));
+
+  const candidates = new Map<string, (typeof bySlug)[number]>();
+  for (const row of [...bySlug, ...byTitle]) {
+    candidates.set(row.id, row);
+  }
+  return pickCanonicalPatternNote([...candidates.values()], canonical);
 }
 
 export async function resolveExistingNote(raw: string, executor: Executor = db) {

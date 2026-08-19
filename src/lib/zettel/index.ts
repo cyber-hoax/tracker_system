@@ -41,6 +41,12 @@ export { parseWikilink, canonicalWikilinkTarget } from "./wikilink";
 export { parsePropertyValue, isWikilinkType } from "./values";
 export { syncPropertyLinks } from "./links";
 export {
+  canonicalPatternTitle,
+  collapsePatternTitles,
+  HASH_TABLE_CANONICAL,
+} from "./pattern-aliases";
+export { mergeAliasedPatternNotes } from "./pattern-merge";
+export {
   createNote,
   deleteNote,
   getNoteByRoute,

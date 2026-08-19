@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isNoteRoute } from "./note-route";
+import { isFullBleedRoute, isNoteRoute } from "./note-route";
 
 describe("isNoteRoute", () => {
   it("matches DSA, pattern, and generic note detail pages", () => {
@@ -15,5 +15,14 @@ describe("isNoteRoute", () => {
     expect(isNoteRoute("/")).toBe(false);
     expect(isNoteRoute("/reports")).toBe(false);
     expect(isNoteRoute("/dsa/foo/bar")).toBe(false);
+  });
+});
+
+describe("isFullBleedRoute", () => {
+  it("includes the graph canvas, chat, and note editors", () => {
+    expect(isFullBleedRoute("/graph")).toBe(true);
+    expect(isFullBleedRoute("/chat")).toBe(true);
+    expect(isFullBleedRoute("/dsa/two-sum")).toBe(true);
+    expect(isFullBleedRoute("/reports")).toBe(false);
   });
 });

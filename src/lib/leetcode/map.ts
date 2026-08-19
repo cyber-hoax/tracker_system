@@ -1,3 +1,4 @@
+import { canonicalPatternTitle } from "@/lib/zettel/pattern-aliases";
 import { addCalendarDays, formatYmd, ymdInZone } from "@/lib/timezone";
 import type {
   LeetCodeProblemMeta,
@@ -47,6 +48,12 @@ const TAG_ALIASES: Record<string, string> = {
   trie: "trie",
   stack: "stack",
   recursion: "recursion",
+  "hash table": "hash table",
+  hashmap: "hash table",
+  "hash map": "hash table",
+  "hash set": "hash table",
+  hashset: "hash table",
+  hashtable: "hash table",
 };
 
 const LANG_FENCE: Record<string, string> = {
@@ -245,7 +252,7 @@ function mapOnePattern(
 ): string | null {
   const norm = normalizeTag(tag);
   if (!norm) return null;
-  const alias = TAG_ALIASES[norm] ?? norm;
+  const alias = canonicalPatternTitle(TAG_ALIASES[norm] ?? norm);
   const known = knownByNorm.get(normalizeTag(alias)) ?? knownByNorm.get(norm);
   if (known) return known;
   if (GENERIC_TAGS.has(norm)) return null;

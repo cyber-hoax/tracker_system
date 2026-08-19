@@ -2,6 +2,7 @@ import { and, eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import { links, noteProperties, notes, propertyDefs } from "@/db/schema";
 import { clipGraph } from "./graph-clip";
+import { collapseAliasedPatternGraph } from "./pattern-aliases";
 import { propertyConditions } from "./filters";
 import type { ProblemFilters } from "./query";
 import { noteHref } from "./slug";
@@ -62,7 +63,7 @@ export async function getGraphData(
     kind: row.kind,
   }));
 
-  const clipped = clipGraph(
+  const raw = clipGraph(
     noteRows.map((row) => ({
       id: row.id,
       name: row.title,
@@ -73,6 +74,7 @@ export async function getGraphData(
     rawLinks,
     seedIds,
   );
+  const clipped = collapseAliasedPatternGraph(raw.nodes, raw.links);
 
   if (clipped.nodes.length === 0) {
     return clipped;

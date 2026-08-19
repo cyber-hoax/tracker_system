@@ -12,7 +12,14 @@ import {
 } from "@/db/schema";
 import { PATTERN_PROPERTY_KEY, SYSTEM_PROPERTY_KEYS } from "./constants";
 import { propertyConditions } from "./filters";
-import { syncPropertyLinks, uniqueFilePath, uniqueSlug } from "./links";
+import { findPatternNote, syncPropertyLinks, uniqueFilePath, uniqueSlug } from "./links";
+import {
+  canonicalPatternTitle,
+  collapsePatternTitles,
+  groupAliasedPatternNotes,
+  patternAliasSlugs,
+  pickCanonicalPatternNote,
+} from "./pattern-aliases";
 import type { ProblemFilters } from "./query";
 import { patternDbSlug, patternSlugCandidates, slugify } from "./slug";
 import { parsePropertyValue, type PropertyJson } from "./values";
@@ -151,7 +158,18 @@ export async function listPatterns(): Promise<PatternListItem[]> {
     .where(eq(notes.type, "pattern"))
     .groupBy(notes.id)
     .orderBy(asc(notes.title));
-  return rows;
+
+  const collapsed: PatternListItem[] = [];
+  for (const [canonical, group] of groupAliasedPatternNotes(rows)) {
+    const keeper = pickCanonicalPatternNote(group, canonical);
+    if (!keeper) continue;
+    collapsed.push({
+      ...keeper,
+      title: canonical,
+      backlinkCount: group.reduce((sum, row) => sum + row.backlinkCount, 0),
+    });
+  }
+  return collapsed.sort((a, b) => a.title.localeCompare(b.title));
 }
 
 export async function getNoteByRoute(
@@ -160,14 +178,24 @@ export async function getNoteByRoute(
 ): Promise<NoteDetail | null> {
   const slugFilter =
     type === "pattern"
-      ? inArray(notes.slug, patternSlugCandidates(slugParam))
+      ? inArray(notes.slug, [
+          ...patternSlugCandidates(slugParam),
+          ...patternAliasSlugs(slugParam),
+        ])
       : eq(notes.slug, slugParam);
 
-  const [note] = await db
+  const matches = await db
     .select()
     .from(notes)
-    .where(and(eq(notes.type, type), slugFilter))
-    .limit(1);
+    .where(and(eq(notes.type, type), slugFilter));
+
+  const note =
+    type === "pattern"
+      ? pickCanonicalPatternNote(
+          matches,
+          canonicalPatternTitle(slugParam.replace(/-/g, " ")),
+        )
+      : matches[0];
 
   if (!note) return null;
   return assembleNoteDetail(note);
@@ -227,7 +255,7 @@ export async function listPatternTitles(): Promise<string[]> {
     .from(notes)
     .where(eq(notes.type, "pattern"))
     .orderBy(asc(notes.title));
-  return rows.map((row) => row.title);
+  return collapsePatternTitles(rows.map((row) => row.title));
 }
 
 export async function getNoteBySlug(slugParam: string): Promise<NoteDetail | null> {
@@ -242,9 +270,15 @@ export async function createNote(input: {
   folderId?: string | null;
   body?: string;
 }): Promise<NoteRecord> {
-  const title = input.title.trim();
-  if (!title) {
+  const trimmed = input.title.trim();
+  if (!trimmed) {
     throw new Error("Title is required");
+  }
+  const title =
+    input.type === "pattern" ? canonicalPatternTitle(trimmed) : trimmed;
+  if (input.type === "pattern") {
+    const existing = await findPatternNote(title);
+    if (existing) return existing;
   }
   const baseSlug =
     input.type === "pattern" ? patternDbSlug(title) : slugify(title);

@@ -1,5 +1,6 @@
 import type { PropertyValueType } from "@/db/schema";
 import { PATTERN_PROPERTY_KEY } from "./constants";
+import { canonicalPatternTitle } from "./pattern-aliases";
 import { canonicalWikilinkTarget } from "./wikilink";
 
 export type PropertyJson = string | number | boolean | string[];
@@ -52,7 +53,8 @@ export function parsePropertyValue(
     }
     case "wikilink": {
       if (value == null) return null;
-      return canonicalWikilinkTarget(String(value), { stripPatternFolder });
+      const next = canonicalWikilinkTarget(String(value), { stripPatternFolder });
+      return stripPatternFolder ? canonicalPatternTitle(next) : next;
     }
     case "multi_select": {
       if (value == null) return null;
@@ -67,6 +69,7 @@ export function parsePropertyValue(
         .map((item) =>
           canonicalWikilinkTarget(item, { stripPatternFolder }),
         )
+        .map((item) => (stripPatternFolder ? canonicalPatternTitle(item) : item))
         .filter(Boolean);
       return [...new Set(items)];
     }

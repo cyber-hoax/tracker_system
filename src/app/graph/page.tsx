@@ -37,15 +37,21 @@ export default async function GraphPage({
   );
 
   return (
-    <main className="space-y-6">
-      <div>
-        <p className="font-mono text-xs uppercase tracking-[0.18em] text-ctp-overlay0">
-          Zettelkasten
-        </p>
-        <h1 className="mt-1 text-2xl text-ctp-text">Graph</h1>
-        <p className="mt-2 max-w-2xl text-sm text-ctp-subtext0">
-          Nodes are notes. Edges come from <code>links</code> (Pattern property
-          sync, other wikilinks, manual). Click a node to open it.
+    <main className="flex min-h-0 flex-1 flex-col gap-4 px-5 pb-4 pt-6">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="font-mono text-xs uppercase tracking-[0.18em] text-ctp-overlay0">
+            Zettelkasten
+          </p>
+          <h1 className="mt-1 text-2xl text-ctp-text">Graph</h1>
+          <p className="mt-2 max-w-2xl text-sm text-ctp-subtext0">
+            Nodes are notes. Edges come from Pattern links, wikilinks, and
+            manual links. Zoom in for titles; click a node to inspect it. Drag a
+            hub to pin it in place.
+          </p>
+        </div>
+        <p className="font-mono text-[13px] text-ctp-overlay0">
+          {graph.nodes.length} nodes · {graph.links.length} edges
         </p>
       </div>
 
@@ -57,17 +63,6 @@ export default async function GraphPage({
         patternTitles={patternTitles}
       />
 
-      <div className="flex flex-wrap gap-4 font-mono text-[10px] uppercase tracking-wide text-ctp-overlay0">
-        <LegendDot color="#cba6f7" label="Problem" />
-        <LegendDot color="#89b4fa" label="Pattern hub" />
-        <LegendDot color="#cba6f7" label="Pattern link" line />
-        <LegendDot color="#6c7086" label="Wikilink" line />
-        <LegendDot color="#a6e3a1" label="Manual" line />
-        <span>
-          {graph.nodes.length} nodes · {graph.links.length} edges
-        </span>
-      </div>
-
       {graph.nodes.length === 0 ? (
         <p className="text-sm text-ctp-overlay0">
           No notes in the graph. Add problems and Pattern properties first.
@@ -76,25 +71,5 @@ export default async function GraphPage({
         <ZettelGraph data={graph} />
       )}
     </main>
-  );
-}
-
-function LegendDot({
-  color,
-  label,
-  line = false,
-}: {
-  color: string;
-  label: string;
-  line?: boolean;
-}) {
-  return (
-    <span className="inline-flex items-center gap-2">
-      <span
-        className={line ? "h-0.5 w-4" : "h-2.5 w-2.5 rounded-full"}
-        style={{ backgroundColor: color }}
-      />
-      {label}
-    </span>
   );
 }

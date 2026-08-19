@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  appearanceForColorTheme,
   appearanceForFontTheme,
   appearanceStyle,
   defaultAppearance,
@@ -41,6 +42,61 @@ describe("parseAppearance", () => {
     expect(
       parseAppearance({ codeTheme: "kanagawa-dragon" }).codeTheme,
     ).toBe("kanagawa-dragon");
+    expect(parseAppearance({ colorTheme: "struck" }).colorTheme).toBe("struck");
+    expect(parseAppearance({ colorTheme: "tensegrity" }).colorTheme).toBe(
+      "tensegrity",
+    );
+    expect(
+      parseAppearance({ colorTheme: "tensegrity-light" }).colorTheme,
+    ).toBe("tensegrity-light");
+    expect(parseAppearance({ colorTheme: "inkdrop" }).colorTheme).toBe(
+      "inkdrop",
+    );
+    expect(parseAppearance({ colorTheme: "inkdrop-light" }).colorTheme).toBe(
+      "inkdrop-light",
+    );
+  });
+});
+
+describe("appearanceForColorTheme", () => {
+  it("pairs studio palettes with their code themes", () => {
+    expect(appearanceForColorTheme(defaultAppearance(), "struck").codeTheme).toBe(
+      "struck",
+    );
+    expect(
+      appearanceForColorTheme(defaultAppearance(), "tensegrity-light")
+        .codeTheme,
+    ).toBe("tensegrity");
+    expect(appearanceForColorTheme(defaultAppearance(), "mocha").codeTheme).toBe(
+      "mocha",
+    );
+    expect(appearanceForColorTheme(defaultAppearance(), "mocha").fontTheme).toBe(
+      "jetbrains",
+    );
+  });
+
+  it("pairs Inkdrop with Inter and the Inkdrop code theme", () => {
+    const next = appearanceForColorTheme(defaultAppearance(), "inkdrop");
+    expect(next.colorTheme).toBe("inkdrop");
+    expect(next.fontTheme).toBe("inter");
+    expect(next.codeTheme).toBe("inkdrop");
+    expect(next.uiFont).toContain("--font-inter");
+  });
+
+  it("pairs Inkdrop Light with Inter and the light Inkdrop code theme", () => {
+    const next = appearanceForColorTheme(defaultAppearance(), "inkdrop-light");
+    expect(next.colorTheme).toBe("inkdrop-light");
+    expect(next.fontTheme).toBe("inter");
+    expect(next.codeTheme).toBe("inkdrop-light");
+    expect(next.uiFont).toContain("--font-inter");
+  });
+
+  it("does not revert font when switching to mocha", () => {
+    const inkdrop = appearanceForColorTheme(defaultAppearance(), "inkdrop");
+    const mocha = appearanceForColorTheme(inkdrop, "mocha");
+    expect(mocha.colorTheme).toBe("mocha");
+    expect(mocha.fontTheme).toBe("inter");
+    expect(mocha.uiFont).toContain("--font-inter");
   });
 });
 

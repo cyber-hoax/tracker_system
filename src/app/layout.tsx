@@ -33,7 +33,6 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function RootLayout({ children }: LayoutProps<"/">) {
   await connection();
   const appearance = loadAppearance();
-  const appName = getAppName();
   const tree = await loadWorkspaceTree();
   const desktop = await isDesktopApp();
   const fontClass = `${jetbrainsMono.variable} ${inter.variable}`;
@@ -47,7 +46,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       style={appearanceStyle(appearance) as CSSProperties}
     >
       <body className="antialiased">
-        <AppShell appName={appName} tree={tree}>
+        <AppShell tree={tree} colorTheme={appearance.colorTheme}>
           {children}
         </AppShell>
       </body>

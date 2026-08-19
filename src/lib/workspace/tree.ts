@@ -14,6 +14,9 @@ export type FolderNoteRow = {
   slug: string;
   type: string;
   folderId: string | null;
+  updatedAt: Date;
+  excerpt: string;
+  patterns?: string[];
 };
 
 export type FolderTreeNote = {
@@ -22,6 +25,10 @@ export type FolderTreeNote = {
   slug: string;
   type: string;
   href: string;
+  folderId: string;
+  updatedAt: Date;
+  excerpt: string;
+  patterns: string[];
 };
 
 export type FolderTreeNode = {
@@ -119,15 +126,20 @@ export function assembleFolderTree(
   const notesByFolder = new Map<string, FolderTreeNote[]>();
   for (const note of notes) {
     if (!note.folderId) continue;
-    const list = notesByFolder.get(note.folderId) ?? [];
+    const folderId = note.folderId;
+    const list = notesByFolder.get(folderId) ?? [];
     list.push({
       id: note.id,
       title: note.title,
       slug: note.slug,
       type: note.type,
       href: noteHref(note.type, note.slug),
+      folderId,
+      updatedAt: note.updatedAt,
+      excerpt: note.excerpt,
+      patterns: note.patterns ?? [],
     });
-    notesByFolder.set(note.folderId, list);
+    notesByFolder.set(folderId, list);
   }
   for (const list of notesByFolder.values()) {
     list.sort((a, b) => a.title.localeCompare(b.title));

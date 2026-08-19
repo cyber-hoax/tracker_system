@@ -1,13 +1,19 @@
 import { describe, expect, it } from "vitest";
 import {
   alreadyLogged,
+  alreadyLoggedBlock,
   applyLoggedSession,
   applyUnloggedSession,
   blockCtaMinutes,
   blockCtaName,
   blockLogKey,
+  blockLogPayload,
+  canLogFromTimeline,
+  extraTimeLogBody,
+  sessionForBlock,
   sessionForQuickLog,
   timelineChip,
+  weekCardValues,
 } from "./dashboard-log";
 import type { Briefing, EnrichedBlock, SessionRecord } from "./types";
 
@@ -203,13 +209,152 @@ describe("applyLoggedSession", () => {
       }),
     });
     expect(dsa.briefing.stats.study_minutes_week).toBe(90);
-    expect(dsa.briefing.stats.dsa_problems_week).toBe(1);
-    expect(dsa.briefing.stats.dsa_problems_total).toBe(1);
+    expect(dsa.briefing.stats.dsa_problems_week).toBe(0);
+    expect(dsa.briefing.stats.dsa_problems_total).toBe(0);
     expect(
       dsa.briefing.guidance.some((line) =>
         line.startsWith("Focused study logged this week: 1.5h."),
       ),
     ).toBe(true);
+  });
+});
+
+describe("week cards", () => {
+  it("reads DSA this week from this week's solved problem notes, not sessions", () => {
+    const cards = weekCardValues({
+      ...briefing().stats,
+      dsa_problems_total: 143,
+      dsa_problems_week: 2,
+      by_subject: {
+        dsa: { minutes: 90, sessions: 1, problems: 0 },
+      },
+    });
+    expect(cards.dsaProblemsLogged).toBe(2);
+    expect(cards.dsaThisWeek).toBe(2);
+  });
+
+  it("does not count a DSA block log as DSA this week", () => {
+    const past = dsaBlock();
+    const payload = blockLogPayload(past, "2026-08-18");
+    const next = applyLoggedSession({
+      briefing: briefing(),
+      recent: [],
+      session: session({
+        id: "dsa-block",
+        subject: payload.subject,
+        minutes: payload.minutes,
+        notes: payload.notes,
+        problems_count: 0,
+        extra: payload.extra,
+      }),
+    });
+    const cards = weekCardValues(next.briefing.stats);
+    expect(cards.dsaThisWeek).toBe(0);
+    expect(cards.dsaProblemsLogged).toBe(0);
+    expect(cards.studyMinutesWeek).toBe(90);
+
+    const undone = applyUnloggedSession({
+      briefing: next.briefing,
+      recent: next.recent,
+      session: next.recent[0]!,
+    });
+    expect(weekCardValues(undone.briefing.stats).dsaThisWeek).toBe(0);
+    expect(weekCardValues(undone.briefing.stats).studyMinutesWeek).toBe(0);
+  });
+
+  it("keeps solved-note problem counts when a DSA block logs problems_count 0", () => {
+    const payload = blockLogPayload(dsaBlock(), "2026-08-18");
+    const afterBlock = applyLoggedSession({
+      briefing: briefing({
+        stats: {
+          ...briefing().stats,
+          dsa_problems_week: 2,
+          dsa_problems_total: 143,
+        },
+      }),
+      recent: [],
+      session: session({
+        id: "dsa-block",
+        subject: payload.subject,
+        minutes: payload.minutes,
+        notes: payload.notes,
+        problems_count: 0,
+        extra: payload.extra,
+      }),
+    });
+    expect(weekCardValues(afterBlock.briefing.stats).dsaProblemsLogged).toBe(2);
+    expect(weekCardValues(afterBlock.briefing.stats).dsaThisWeek).toBe(2);
+
+    const extraBody = extraTimeLogBody({
+      subject: "dsa",
+      minutes: 0,
+      notes: "two more",
+      problems_count: 2,
+    });
+    const afterExtra = applyLoggedSession({
+      briefing: afterBlock.briefing,
+      recent: afterBlock.recent,
+      session: session({
+        id: "extra-dsa",
+        ...extraBody,
+        extra: {},
+      }),
+    });
+    const cards = weekCardValues(afterExtra.briefing.stats);
+    expect(cards.dsaProblemsLogged).toBe(2);
+    expect(cards.dsaThisWeek).toBe(2);
+  });
+
+  it("still counts walk and reading as unique days", () => {
+    const mondayWalk = session({
+      id: "monday",
+      ts: "2026-08-17T06:00:00.000Z",
+      subject: "walk",
+    });
+    const secondWalkSameDay = applyLoggedSession({
+      briefing: briefing(),
+      recent: [session({ id: "today-walk" })],
+      session: session({ id: "today-walk-2" }),
+    });
+    expect(weekCardValues(secondWalkSameDay.briefing.stats).walkDays).toBe(1);
+
+    const nextWalkDay = applyLoggedSession({
+      briefing: briefing(),
+      recent: [mondayWalk],
+      session: session({ id: "tue-walk" }),
+    });
+    expect(weekCardValues(nextWalkDay.briefing.stats).walkDays).toBe(2);
+
+    const firstReading = applyLoggedSession({
+      briefing: briefing({
+        stats: {
+          ...briefing().stats,
+          reading_days: 0,
+          by_subject: {},
+        },
+      }),
+      recent: [],
+      session: session({
+        id: "read-1",
+        subject: "reading",
+        minutes: 30,
+        notes: "Reading block",
+      }),
+    });
+    expect(weekCardValues(firstReading.briefing.stats).walkDays).toBe(1);
+    expect(firstReading.briefing.stats.reading_days).toBe(1);
+
+    const secondReadingSameDay = applyLoggedSession({
+      briefing: firstReading.briefing,
+      recent: firstReading.recent,
+      session: session({
+        id: "read-2",
+        subject: "reading",
+        minutes: 30,
+        notes: "Reading block",
+      }),
+    });
+    expect(secondReadingSameDay.briefing.stats.reading_days).toBe(1);
   });
 });
 
@@ -513,5 +658,263 @@ describe("sessionForQuickLog", () => {
         }),
       ])?.id,
     ).toBe("today-walk");
+  });
+});
+
+function missedDsa(): EnrichedBlock {
+  return {
+    ...dsaBlock(),
+    start: "19:30",
+    end: "21:00",
+    start_iso: "2026-08-18T14:00:00.000Z",
+    end_iso: "2026-08-18T15:30:00.000Z",
+  };
+}
+
+function missedMeal(): EnrichedBlock {
+  return {
+    start: "21:30",
+    end: "22:00",
+    start_iso: "2026-08-18T16:00:00.000Z",
+    end_iso: "2026-08-18T16:30:00.000Z",
+    title: "Dinner",
+    kind: "meal",
+    subject: "none",
+    guide: "Dinner",
+    minutes: 30,
+    remaining_min: 0,
+    elapsed_min: 30,
+    progress_pct: 100,
+  };
+}
+
+function missedWork(): EnrichedBlock {
+  return {
+    start: "09:00",
+    end: "19:00",
+    start_iso: "2026-08-18T03:30:00.000Z",
+    end_iso: "2026-08-18T13:30:00.000Z",
+    title: "Work",
+    kind: "work",
+    subject: "none",
+    guide: "Office hours",
+    minutes: 600,
+    remaining_min: 0,
+    elapsed_min: 600,
+    progress_pct: 100,
+  };
+}
+
+function commuteBlock(): EnrichedBlock {
+  return {
+    start: "08:15",
+    end: "09:00",
+    start_iso: "2026-08-18T02:45:00.000Z",
+    end_iso: "2026-08-18T03:30:00.000Z",
+    title: "Commute / buffer",
+    kind: "buffer",
+    subject: "none",
+    guide: "Keep the morning predictable",
+    minutes: 45,
+    remaining_min: 0,
+    elapsed_min: 45,
+    progress_pct: 100,
+  };
+}
+
+function morningBlock(): EnrichedBlock {
+  return {
+    start: "07:30",
+    end: "08:15",
+    start_iso: "2026-08-18T02:00:00.000Z",
+    end_iso: "2026-08-18T02:45:00.000Z",
+    title: "Morning routine",
+    kind: "maintenance",
+    subject: "morning",
+    guide: "Water, wash, sunlight",
+    minutes: 45,
+    remaining_min: 0,
+    elapsed_min: 45,
+    progress_pct: 100,
+  };
+}
+
+const EVENING_MS = Date.parse("2026-08-18T17:35:00.000Z");
+
+describe("missed-row log", () => {
+  it("sets block_key for a missed DSA row the same way as the peach CTA", () => {
+    const past = missedDsa();
+    const payload = blockLogPayload(past, "2026-08-18");
+    expect(payload.subject).toBe("dsa");
+    expect(payload.minutes).toBe(90);
+    expect(payload.notes).toBe("DSA");
+    expect(payload.extra.block_key).toBe(blockLogKey(past, "2026-08-18"));
+    expect(payload.extra.block_start).toBe("19:30");
+    expect(payload.extra.block_title).toBe("DSA");
+    expect(payload.extra.block_key).toBe("2026-08-18|19:30|DSA");
+  });
+
+  it("does not set block_key on extra time, so a missed DSA chip stays Missed", () => {
+    const past = missedDsa();
+    const snap = briefing({
+      now: "2026-08-18T17:35:00.000Z",
+      current: null,
+      today: [past],
+    });
+    const extraBody = extraTimeLogBody({
+      subject: "dsa",
+      minutes: 15,
+      notes: "leftover",
+      problems_count: 1,
+    });
+    expect("extra" in extraBody).toBe(false);
+    expect(JSON.stringify(extraBody)).not.toContain("block_key");
+
+    const extra = session({
+      id: "extra-dsa",
+      subject: extraBody.subject,
+      minutes: extraBody.minutes,
+      notes: extraBody.notes,
+      problems_count: extraBody.problems_count,
+      extra: {},
+    });
+    expect(timelineChip(past, snap, [extra], EVENING_MS)).toBe("Missed");
+    expect(alreadyLoggedBlock(past, snap, [extra])).toBe(false);
+  });
+
+  it("is unique per block_key, not the current HLD block or extra-time DSA", () => {
+    const past = missedDsa();
+    const hld = {
+      ...dsaBlock(),
+      start: "22:20",
+      end: "23:20",
+      start_iso: "2026-08-18T16:50:00.000Z",
+      end_iso: "2026-08-18T17:50:00.000Z",
+      title: "HLD",
+      subject: "hld",
+    };
+    const snap = briefing({
+      now: "2026-08-18T17:35:00.000Z",
+      current: hld,
+      today: [past, hld],
+    });
+    const extraDsa = session({
+      id: "extra-dsa",
+      subject: "dsa",
+      minutes: 15,
+      extra: {},
+    });
+    const keyedHld = session({
+      id: "keyed-hld",
+      subject: "hld",
+      extra: { block_key: blockLogKey(hld, "2026-08-18") },
+    });
+    expect(alreadyLogged("block", snap, [extraDsa, keyedHld])).toBe(true);
+    expect(alreadyLoggedBlock(past, snap, [extraDsa, keyedHld])).toBe(false);
+    expect(timelineChip(past, snap, [extraDsa, keyedHld], EVENING_MS)).toBe("Missed");
+
+    const keyedDsa = session({
+      id: "keyed-dsa",
+      subject: "dsa",
+      extra: { block_key: blockLogKey(past, "2026-08-18") },
+    });
+    expect(alreadyLoggedBlock(past, snap, [keyedDsa, keyedHld])).toBe(true);
+    expect(alreadyLoggedBlock(hld, snap, [keyedDsa])).toBe(false);
+  });
+
+  it("restores Missed after undo of a keyed missed-row log", () => {
+    const past = missedDsa();
+    const snap = briefing({
+      now: "2026-08-18T17:35:00.000Z",
+      current: null,
+      today: [past],
+    });
+    const payload = blockLogPayload(past, "2026-08-18");
+    const logged = session({
+      id: "dsa-missed",
+      subject: payload.subject,
+      minutes: payload.minutes,
+      notes: payload.notes,
+      extra: payload.extra,
+    });
+    const afterLog = applyLoggedSession({
+      briefing: snap,
+      recent: [],
+      session: logged,
+    });
+    expect(timelineChip(past, afterLog.briefing, afterLog.recent, EVENING_MS)).toBe(
+      "Logged",
+    );
+    expect(sessionForBlock(past, afterLog.briefing, afterLog.recent)?.id).toBe(
+      "dsa-missed",
+    );
+
+    const afterUndo = applyUnloggedSession({
+      briefing: afterLog.briefing,
+      recent: afterLog.recent,
+      session: logged,
+    });
+    expect(timelineChip(past, afterUndo.briefing, afterUndo.recent, EVENING_MS)).toBe(
+      "Missed",
+    );
+    expect(sessionForBlock(past, afterUndo.briefing, afterUndo.recent)).toBeNull();
+  });
+
+  it("allows logging any Today row from Missed, Now, or Remaining, including work/dinner/commute/morning", () => {
+    const past = missedDsa();
+    const future = {
+      ...dsaBlock(),
+      start: "23:20",
+      end: "23:50",
+      start_iso: "2026-08-18T17:50:00.000Z",
+      end_iso: "2026-08-18T18:20:00.000Z",
+      title: "Reading",
+      kind: "reading",
+      subject: "reading",
+    };
+    expect(canLogFromTimeline(past, "Missed")).toBe(true);
+    expect(canLogFromTimeline(decompression(), "Missed")).toBe(true);
+    expect(canLogFromTimeline(missedWork(), "Missed")).toBe(true);
+    expect(canLogFromTimeline(missedMeal(), "Missed")).toBe(true);
+    expect(canLogFromTimeline(commuteBlock(), "Missed")).toBe(true);
+    expect(canLogFromTimeline(morningBlock(), "Missed")).toBe(true);
+    expect(canLogFromTimeline(future, "Remaining")).toBe(true);
+    expect(canLogFromTimeline(past, "Now")).toBe(true);
+    expect(canLogFromTimeline(missedWork(), "Logged")).toBe(false);
+  });
+
+  it("sets block_key for a missed work row and extra time still does not", () => {
+    const past = missedWork();
+    const payload = blockLogPayload(past, "2026-08-18");
+    expect(payload.subject).toBe("other");
+    expect(payload.minutes).toBe(600);
+    expect(payload.notes).toBe("Work");
+    expect(payload.extra.block_key).toBe(blockLogKey(past, "2026-08-18"));
+    expect(payload.extra.block_start).toBe("09:00");
+    expect(payload.extra.block_title).toBe("Work");
+
+    const extraBody = extraTimeLogBody({
+      subject: "other",
+      minutes: 15,
+      notes: "leftover",
+      problems_count: 0,
+    });
+    expect("extra" in extraBody).toBe(false);
+    expect(JSON.stringify(extraBody)).not.toContain("block_key");
+
+    const snap = briefing({
+      now: "2026-08-18T17:35:00.000Z",
+      current: null,
+      today: [past],
+    });
+    const extra = session({
+      id: "extra-other",
+      subject: extraBody.subject,
+      minutes: extraBody.minutes,
+      notes: extraBody.notes,
+      extra: {},
+    });
+    expect(timelineChip(past, snap, [extra], EVENING_MS)).toBe("Missed");
+    expect(alreadyLoggedBlock(past, snap, [extra])).toBe(false);
   });
 });

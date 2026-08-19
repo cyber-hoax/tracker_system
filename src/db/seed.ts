@@ -96,6 +96,8 @@ export async function seedDatabase(verbose = false) {
   }
 
   const { loadRoutineRecord } = await import("../lib/routine");
+  const { mergeAliasedPatternNotes } = await import("../lib/zettel/pattern-merge");
+  await mergeAliasedPatternNotes();
   const routine = await loadRoutineRecord();
   if (verbose) {
     console.log(

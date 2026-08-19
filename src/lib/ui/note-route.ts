@@ -7,5 +7,5 @@ export function isNoteRoute(pathname: string): boolean {
 }
 
 export function isFullBleedRoute(pathname: string): boolean {
-  return isNoteRoute(pathname) || pathname === "/chat";
+  return isNoteRoute(pathname) || pathname === "/chat" || pathname === "/graph";
 }

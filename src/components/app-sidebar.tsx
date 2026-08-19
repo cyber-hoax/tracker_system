@@ -36,7 +36,6 @@ import {
   renameFolderAction,
   renameNoteAction,
 } from "@/app/actions/workspace";
-import { updateAppNameAction } from "@/app/actions/appearance";
 import {
   EllipsisIcon,
   WorkspaceItemMenu,
@@ -214,18 +213,22 @@ function FolderItem({
   node,
   collapsed,
   pathname,
+  selectedFolderId,
   draft,
   menu,
   onOpenMenu,
   onDraft,
+  onSelectFolder,
 }: {
   node: FolderTreeNode;
   collapsed: boolean;
   pathname: string;
+  selectedFolderId: string | null;
   draft: Draft | null;
   menu: WorkspaceMenuState | null;
   onOpenMenu: (point: { x: number; y: number }, target: WorkspaceMenuTarget) => void;
   onDraft: (draft: Draft | null) => void;
+  onSelectFolder: (id: string) => void;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(true);
@@ -246,11 +249,14 @@ function FolderItem({
     parentId: node.parentId,
   };
   const menuOpen = menu?.target.kind === "folder" && menu.target.id === node.id;
+  const selected = selectedFolderId === node.id;
 
   return (
     <div>
       <div
-        className="group relative flex items-center gap-0.5 rounded-md px-1 py-0.5 hover:bg-ctp-surface0"
+        className={`group relative flex items-center gap-0.5 rounded-md px-1 py-0.5 ${
+          selected ? "bg-ctp-surface0" : "hover:bg-ctp-surface0"
+        }`}
         onContextMenu={(event) => {
           event.preventDefault();
           onOpenMenu({ x: event.clientX, y: event.clientY }, target);
@@ -259,10 +265,23 @@ function FolderItem({
         <button
           type="button"
           aria-expanded={open}
+          aria-label={open ? "Collapse folder" : "Expand folder"}
           onClick={() => setOpen((value) => !value)}
-          className="flex min-w-0 flex-1 items-center gap-1.5 pr-6 text-left text-[13px] text-ctp-subtext0 hover:text-ctp-text"
+          className="flex h-7 w-7 shrink-0 items-center justify-center text-ctp-overlay0 hover:text-ctp-text"
         >
           <Chevron open={open} />
+        </button>
+        <button
+          type="button"
+          aria-current={selected ? "true" : undefined}
+          onClick={() => {
+            onSelectFolder(node.id);
+            setOpen(true);
+          }}
+          className={`flex min-w-0 flex-1 items-center gap-1.5 pr-6 text-left text-[13px] ${
+            selected ? "text-ctp-text" : "text-ctp-subtext0 hover:text-ctp-text"
+          }`}
+        >
           <ChromeIcon icon={FolderSimple} size={18} className="text-ctp-overlay1" />
           <span className="truncate">{node.name}</span>
         </button>
@@ -331,22 +350,12 @@ function FolderItem({
               node={child}
               collapsed={collapsed}
               pathname={pathname}
+              selectedFolderId={selectedFolderId}
               draft={draft}
               menu={menu}
               onOpenMenu={onOpenMenu}
               onDraft={onDraft}
-            />
-          ))}
-          {node.notes.map((note) => (
-            <NoteItem
-              key={note.id}
-              note={note}
-              folderId={node.id}
-              pathname={pathname}
-              draft={draft}
-              menu={menu}
-              onOpenMenu={onOpenMenu}
-              onDraft={onDraft}
+              onSelectFolder={onSelectFolder}
             />
           ))}
         </div>
@@ -411,6 +420,7 @@ function NoteItem({
     >
       <Link
         href={note.href}
+        aria-current={active ? "page" : undefined}
         className={`flex min-w-0 flex-1 items-center gap-1.5 truncate rounded-md px-1.5 py-0.5 pr-6 text-[13px] ${
           active
             ? "bg-ctp-surface0 text-ctp-text"
@@ -434,11 +444,15 @@ function NoteItem({
 }
 
 export function AppSidebar({
-  appName,
   tree,
+  selectedFolderId,
+  onSelectFolder,
+  onLeaveNotebooks,
 }: {
-  appName: string;
   tree: FolderTreeNode[];
+  selectedFolderId: string | null;
+  onSelectFolder: (id: string) => void;
+  onLeaveNotebooks?: () => void;
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -448,8 +462,6 @@ export function AppSidebar({
   const [dragging, setDragging] = useState(false);
   const widthRef = useRef(width);
   const collapsedRef = useRef(collapsed);
-  const [editingTitle, setEditingTitle] = useState(false);
-  const [title, setTitle] = useState(appName);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [menu, setMenu] = useState<WorkspaceMenuState | null>(null);
   const [, startTransition] = useTransition();
@@ -473,10 +485,6 @@ export function AppSidebar({
       ),
     ];
   }, [folderOptions, folderRows, menu]);
-
-  useEffect(() => {
-    setTitle(appName);
-  }, [appName]);
 
   useEffect(() => {
     widthRef.current = width;
@@ -565,7 +573,7 @@ export function AppSidebar({
   const wide = !collapsed || peek;
 
   function createNewFile() {
-    const folderId = defaultNewFolderId(tree, pathname);
+    const folderId = selectedFolderId ?? defaultNewFolderId(tree, pathname);
     const data = new FormData();
     data.set("title", "Untitled");
     if (folderId) data.set("folderId", folderId);
@@ -610,58 +618,26 @@ export function AppSidebar({
         onMouseLeave={() => {
           if (!menu && !dragging) setPeek(false);
         }}
-        className={`flex h-full max-h-screen flex-col overflow-hidden border-r border-ctp-surface0 bg-ctp-mantle ${
+        className={`app-nav flex h-full max-h-screen flex-col overflow-hidden border-r border-ctp-surface0 ${
           dragging ? "" : "transition-[width,box-shadow] duration-200 ease-out"
         } ${collapsed && peek ? "absolute inset-y-0 left-0 z-40 shadow-2xl" : "sticky top-0"}`}
         style={{ width: panelWidth }}
       >
-        <div className="electron-titlebar flex h-11 shrink-0 items-center gap-1 px-1.5">
-          {wide ? (
-            editingTitle ? (
-              <input
-                autoFocus
-                value={title}
-                onChange={(event) => setTitle(event.target.value)}
-                onBlur={() => {
-                  setEditingTitle(false);
-                  const next = title.trim() || appName;
-                  setTitle(next);
-                  if (next !== appName) void updateAppNameAction(next);
-                }}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter")
-                    (event.target as HTMLInputElement).blur();
-                  if (event.key === "Escape") {
-                    setTitle(appName);
-                    setEditingTitle(false);
-                  }
-                }}
-                className="electron-no-drag min-w-0 flex-1 rounded border border-ctp-mauve bg-ctp-base px-1.5 py-1 text-sm text-ctp-text outline-none"
-              />
-            ) : (
-              <button
-                type="button"
-                onClick={() => setEditingTitle(true)}
-                className="electron-no-drag min-w-0 flex-1 truncate px-1 text-left text-sm font-medium text-ctp-text hover:text-ctp-mauve"
-                title="Rename app"
-              >
-                {appName}
-              </button>
-            )
-          ) : (
-            <span className="flex-1" />
-          )}
-          <button
-            type="button"
-            onClick={toggleCollapsed}
-            className="electron-no-drag flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-ctp-overlay1 hover:bg-ctp-surface0 hover:text-ctp-text"
-            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          >
-            <ChromeIcon icon={SidebarSimple} />
-          </button>
-        </div>
+        <div className="electron-traffic-lights" aria-hidden="true" />
+        {wide ? null : (
+          <div className="flex shrink-0 justify-center px-1 pt-2">
+            <button
+              type="button"
+              onClick={toggleCollapsed}
+              className="electron-no-drag flex h-8 w-8 items-center justify-center rounded-md text-ctp-overlay1 hover:bg-ctp-surface0 hover:text-ctp-text"
+              aria-label="Expand sidebar"
+            >
+              <ChromeIcon icon={SidebarSimple} />
+            </button>
+          </div>
+        )}
 
-        <nav aria-label="Primary" className="shrink-0 space-y-0.5 px-2 py-2">
+        <nav aria-label="Primary" className="shrink-0 space-y-0.5 px-2 pb-2 pt-3">
           {ROOT_LINKS.map((link) => {
             const active = isActive(pathname, link.href);
             return (
@@ -669,7 +645,9 @@ export function AppSidebar({
                 key={link.href}
                 href={link.href}
                 title={link.label}
-                className={`flex items-center rounded-md text-[13px] ${
+                aria-current={active ? "page" : undefined}
+                onClick={() => onLeaveNotebooks?.()}
+                className={`electron-no-drag flex items-center rounded-md text-[13px] ${
                   wide ? "gap-2 px-2 py-1.5" : "justify-center px-0 py-2"
                 } ${
                   active
@@ -691,8 +669,8 @@ export function AppSidebar({
         {wide ? (
           <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-2">
             <div className="mb-1 flex items-center justify-between px-1">
-              <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-ctp-overlay0">
-                Workspace
+              <p className="sidebar-notebooks-kicker font-mono text-[10px] uppercase tracking-[0.16em] text-ctp-overlay0">
+                Notebooks
               </p>
               <button
                 type="button"
@@ -724,10 +702,12 @@ export function AppSidebar({
                 node={node}
                 collapsed={!wide}
                 pathname={pathname}
+                selectedFolderId={selectedFolderId}
                 draft={draft}
                 menu={menu}
                 onOpenMenu={openMenu}
                 onDraft={setDraft}
+                onSelectFolder={onSelectFolder}
               />
             ))}
           </div>
@@ -735,21 +715,34 @@ export function AppSidebar({
           <div className="min-h-0 flex-1" />
         )}
 
-        <div className="shrink-0 border-t border-ctp-surface0 p-2">
-          <button
-            type="button"
-            onClick={createNewFile}
-            className={`flex items-center rounded-full bg-ctp-surface0 text-sm text-ctp-text hover:bg-ctp-surface1 ${
-              wide
-                ? "w-full justify-center gap-2 px-3 py-2"
-                : "mx-auto h-10 w-10 justify-center"
-            }`}
-            aria-label="New file"
-            title="New file"
-          >
-            <ChromeIcon icon={NotePencil} />
-            {wide ? "New" : null}
-          </button>
+        <div className="shrink-0 border-t border-ctp-surface0/80 p-2">
+          <div className={`flex items-center ${wide ? "gap-1" : "justify-center"}`}>
+            <button
+              type="button"
+              onClick={createNewFile}
+              className={`sidebar-new-note electron-no-drag flex items-center rounded-full bg-ctp-surface0 text-sm text-ctp-text hover:bg-ctp-surface1 ${
+                wide
+                  ? "min-w-0 flex-1 justify-center gap-2 px-3 py-2"
+                  : "h-10 w-10 justify-center"
+              }`}
+              aria-label="New file"
+              title="New file"
+            >
+              <ChromeIcon icon={NotePencil} />
+              {wide ? "New" : null}
+            </button>
+            {wide ? (
+              <button
+                type="button"
+                onClick={toggleCollapsed}
+                className="electron-no-drag flex h-10 w-10 shrink-0 items-center justify-center rounded-md text-ctp-overlay1 hover:bg-ctp-surface0 hover:text-ctp-text"
+                aria-label="Collapse sidebar"
+                title="Collapse sidebar"
+              >
+                <ChromeIcon icon={SidebarSimple} />
+              </button>
+            ) : null}
+          </div>
         </div>
 
         <WorkspaceItemMenu

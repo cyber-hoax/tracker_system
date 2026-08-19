@@ -52,6 +52,10 @@ secrets/
 # testing
 /coverage
 
+# Xcode user data
+macos/**/xcuserdata/
+macos/build/
+
 # next.js
 /.next/
 /out/

@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Menu, shell, dialog } = require("electron");
+const { app, BrowserWindow, Menu, shell, dialog, nativeTheme } = require("electron");
 const { spawn } = require("node:child_process");
 const { createConnection } = require("node:net");
 const fs = require("node:fs");
@@ -166,6 +166,8 @@ function installMenu() {
             submenu: [
               { role: "about" },
               { type: "separator" },
+              { role: "services" },
+              { type: "separator" },
               { role: "hide" },
               { role: "hideOthers" },
               { role: "unhide" },
@@ -205,6 +207,10 @@ function installMenu() {
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }
 
+function windowBackground() {
+  return nativeTheme.shouldUseDarkColors ? "#1b1d24" : "#eeeded";
+}
+
 async function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1320,
@@ -212,10 +218,11 @@ async function createWindow() {
     minWidth: 960,
     minHeight: 640,
     title: "Daily Routine",
-    backgroundColor: "#11111b",
+    backgroundColor: windowBackground(),
     show: false,
+    frame: true,
     titleBarStyle: "hiddenInset",
-    trafficLightPosition: { x: 16, y: 16 },
+    trafficLightPosition: { x: 14, y: 12 },
     autoHideMenuBar: true,
     webPreferences: {
       preload: path.join(__dirname, "preload.cjs"),
@@ -283,13 +290,31 @@ async function boot() {
 }
 
 app.setName("Daily Routine");
-app.whenReady().then(() => {
-  app.setLoginItemSettings({ openAtLogin: false, openAsHidden: false });
-  boot().catch((error) => {
-    dialog.showErrorBox("Daily Routine", String(error));
-    app.quit();
-  });
+app.setAboutPanelOptions({
+  applicationName: "Daily Routine",
+  applicationVersion: app.getVersion(),
+  copyright: "Local-first SDE workspace",
 });
+
+const gotLock = app.requestSingleInstanceLock();
+if (!gotLock) {
+  app.quit();
+} else {
+  app.on("second-instance", () => {
+    if (!mainWindow || mainWindow.isDestroyed()) return;
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    mainWindow.show();
+    mainWindow.focus();
+  });
+
+  app.whenReady().then(() => {
+    app.setLoginItemSettings({ openAtLogin: false, openAsHidden: false });
+    boot().catch((error) => {
+      dialog.showErrorBox("Daily Routine", String(error));
+      app.quit();
+    });
+  });
+}
 
 app.on("activate", () => {
   if (BrowserWindow.getAllWindows().length === 0) {

@@ -21,15 +21,21 @@ import {
 } from "@/lib/timezone";
 import {
   alreadyLogged,
+  alreadyLoggedBlock,
   applyLoggedSession,
   applyUnloggedSession,
   blockCtaMinutes,
   blockCtaName,
   blockLogKey,
+  blockLogPayload,
   blockLogSubject,
   briefingDay,
+  canLogFromTimeline,
+  extraTimeLogBody,
+  sessionForBlock,
   sessionForQuickLog,
   timelineChip,
+  weekCardValues,
   type TimelineChip,
 } from "@/lib/dashboard-log";
 import type { Briefing, EnrichedBlock, SessionRecord } from "@/lib/types";
@@ -39,7 +45,7 @@ type DashboardProps = {
   initialRecent: SessionRecord[];
 };
 
-type BusyKind = "block" | "walk" | "reading" | "form" | "undo";
+type BusyKind = "block" | "walk" | "reading" | "form" | "undo" | "timeline";
 
 const EXTRA_DEFAULTS = new Set(["dsa", "lld", "hld", "ai", "review"]);
 
@@ -103,9 +109,9 @@ function chipClass(chip: TimelineChip): string {
     case "Logged":
       return `${base} border border-ctp-green/40 bg-transparent text-ctp-green`;
     case "Remaining":
-      return `${base} border border-ctp-overlay1 bg-transparent text-ctp-overlay1`;
+      return `${base} group-hover:bg-ctp-overlay1/10 border border-ctp-overlay1 bg-transparent text-ctp-overlay1`;
     case "Missed":
-      return `${base} border border-ctp-red bg-transparent text-ctp-red`;
+      return `${base} group-hover:bg-ctp-red/10 border border-ctp-red bg-transparent text-ctp-red`;
   }
 }
 
@@ -172,6 +178,7 @@ export function Dashboard({ initialBriefing, initialRecent }: DashboardProps) {
   const blockCtaRef = useRef<HTMLButtonElement>(null);
   const walkCheckRef = useRef<HTMLButtonElement>(null);
   const readingCheckRef = useRef<HTMLButtonElement>(null);
+  const timelineLogRefs = useRef(new Map<string, HTMLButtonElement>());
   const reviewHydrated = useRef(false);
   const snapshotRef = useRef({ briefing: initialBriefing, recent: initialRecent });
   const busyRef = useRef<null | BusyKind>(null);
@@ -234,7 +241,8 @@ export function Dashboard({ initialBriefing, initialRecent }: DashboardProps) {
     snapshotRef.current = { briefing, recent };
   }, [briefing, recent]);
 
-  const studyH = ((briefing.stats.study_minutes_week || 0) / 60).toFixed(1);
+  const weekCards = weekCardValues(briefing.stats);
+  const studyH = (weekCards.studyMinutesWeek / 60).toFixed(1);
   const logging = Boolean(busy);
   const walkDone = alreadyLogged("walk", briefing, recent);
   const readingDone = alreadyLogged("reading", briefing, recent);
@@ -289,9 +297,21 @@ export function Dashboard({ initialBriefing, initialRecent }: DashboardProps) {
     },
     kind: Exclude<BusyKind, "undo">,
     successMessage: string,
+    uniqueBlock?: EnrichedBlock,
   ) {
     if (busy) return false;
-    if (kind === "walk" || kind === "reading" || kind === "block") {
+    if (uniqueBlock) {
+      if (
+        alreadyLoggedBlock(
+          uniqueBlock,
+          snapshotRef.current.briefing,
+          snapshotRef.current.recent,
+        )
+      ) {
+        setLiveStatus(alreadyMessage("block"));
+        return false;
+      }
+    } else if (kind === "walk" || kind === "reading" || kind === "block") {
       if (alreadyLogged(kind, snapshotRef.current.briefing, snapshotRef.current.recent)) {
         setLiveStatus(alreadyMessage(kind));
         return false;
@@ -402,22 +422,31 @@ export function Dashboard({ initialBriefing, initialRecent }: DashboardProps) {
       setLiveStatus(alreadyMessage("block"));
       return;
     }
-    const minutes = blockCtaMinutes(current);
-    const subject = blockLogSubject(current);
+    const payload = blockLogPayload(current, briefingDay(briefing));
+    void logSession(payload, "block", "Logged this block.", current);
+  }
+
+  function logTimelineBlock(block: EnrichedBlock) {
+    const chip = timelineChip(block, briefing, recent, nowMs);
+    if (!canLogFromTimeline(block, chip)) return;
+    if (alreadyLoggedBlock(block, briefing, recent)) {
+      setLiveStatus(alreadyMessage("block"));
+      return;
+    }
+    const isCurrent =
+      Boolean(current) && current?.start === block.start && current?.title === block.title;
+    const payload = blockLogPayload(block, briefingDay(briefing));
     void logSession(
-      {
-        subject,
-        minutes,
-        notes: current.title,
-        extra: {
-          block_key: blockLogKey(current, briefingDay(briefing)),
-          block_start: current.start,
-          block_title: current.title,
-        },
-      },
-      "block",
+      payload,
+      isCurrent ? "block" : "timeline",
       "Logged this block.",
+      block,
     );
+  }
+
+  function focusTimelineLog(block: EnrichedBlock) {
+    const key = blockLogKey(block, briefingDay(briefing));
+    timelineLogRefs.current.get(key)?.focus();
   }
 
   function toggleHabit(kind: "walk" | "reading") {
@@ -644,12 +673,12 @@ export function Dashboard({ initialBriefing, initialRecent }: DashboardProps) {
                 return;
               }
               const saved = await logSession(
-                {
+                extraTimeLogBody({
                   subject,
                   minutes,
                   problems_count: problemsCount,
                   notes,
-                },
+                }),
                 "form",
                 minutes === 0
                   ? `Logged notes · ${subject}.`
@@ -759,21 +788,71 @@ export function Dashboard({ initialBriefing, initialRecent }: DashboardProps) {
             {briefing.today.map((block) => {
               const chip = timelineChip(block, briefing, recent, nowMs);
               const isNow = chip === "Now";
+              const rowKey = blockLogKey(block, briefingDay(briefing));
+              const canLog =
+                canLogFromTimeline(block, chip) &&
+                !alreadyLoggedBlock(block, briefing, recent);
+              const rowSession = sessionForBlock(block, briefing, recent);
+              const showUndo =
+                chip === "Logged" &&
+                rowSession !== null &&
+                !isOptimisticId(rowSession.id);
+              const rowGrid =
+                "grid w-full grid-cols-[148px_minmax(0,1fr)_auto] items-center gap-3";
               return (
                 <li
                   key={`${block.start}-${block.title}`}
-                  className={`relative ml-2 grid grid-cols-[148px_minmax(0,1fr)_auto] items-center gap-3 border-l-2 py-2 pl-4 ${
+                  className={`relative ml-2 border-l-2 py-2 pl-4 ${
                     isNow ? "border-ctp-peach text-ctp-peach" : "border-ctp-surface0"
                   }`}
                 >
                   <span
                     className={`absolute top-3.5 -left-[5px] h-2.5 w-2.5 rounded-full ${pipClass(chip)}`}
                   />
-                  <span className="font-mono text-[13px] text-ctp-overlay0">
-                    {formatHmRange(block.start, block.end)}
-                  </span>
-                  <span>{block.title}</span>
-                  <span className={chipClass(chip)}>{chip}</span>
+                  {canLog ? (
+                    <button
+                      ref={(node) => {
+                        if (node) timelineLogRefs.current.set(rowKey, node);
+                        else timelineLogRefs.current.delete(rowKey);
+                      }}
+                      type="button"
+                      className={`${rowGrid} group cursor-pointer rounded-lg bg-transparent p-0 text-left text-inherit focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ctp-overlay1 disabled:cursor-wait disabled:opacity-55`}
+                      disabled={logging}
+                      aria-label={`Log ${blockCtaName(block)}`}
+                      onClick={() => logTimelineBlock(block)}
+                    >
+                      <span className="font-mono text-[13px] text-ctp-overlay0">
+                        {formatHmRange(block.start, block.end)}
+                      </span>
+                      <span>{block.title}</span>
+                      <span className={chipClass(chip)}>{chip}</span>
+                    </button>
+                  ) : (
+                    <div className={rowGrid}>
+                      <span className="font-mono text-[13px] text-ctp-overlay0">
+                        {formatHmRange(block.start, block.end)}
+                      </span>
+                      <span>{block.title}</span>
+                      <span className="flex items-center justify-end gap-2">
+                        <span className={chipClass(chip)}>{chip}</span>
+                        {showUndo && rowSession ? (
+                          <button
+                            type="button"
+                            className={undoLink}
+                            disabled={logging}
+                            aria-label={`Undo ${blockCtaName(block)}`}
+                            onClick={() => {
+                              void undoSession(rowSession, "Block undone.", () => {
+                                focusTimelineLog(block);
+                              });
+                            }}
+                          >
+                            Undo
+                          </button>
+                        ) : null}
+                      </span>
+                    </div>
+                  )}
                 </li>
               );
             })}
@@ -785,17 +864,17 @@ export function Dashboard({ initialBriefing, initialRecent }: DashboardProps) {
           <div className="mb-4 grid grid-cols-2 gap-2.5">
             <div className={statCardClass("dsa", "today-week-dsa-total")}>
               <ChartLine size={16} className="today-week-icon mb-1" weight="bold" />
-              <b className="block font-mono text-xl">{briefing.stats.dsa_problems_total || 0}</b>
+              <b className="block font-mono text-xl">{weekCards.dsaProblemsLogged}</b>
               <span className="text-xs text-ctp-subtext1">DSA problems logged</span>
             </div>
             <div className={statCardClass("dsa", "today-week-dsa-week")}>
               <Target size={16} className="today-week-icon mb-1" weight="bold" />
-              <b className="block font-mono text-xl">{briefing.stats.dsa_problems_week || 0}</b>
+              <b className="block font-mono text-xl">{weekCards.dsaThisWeek}</b>
               <span className="text-xs text-ctp-subtext1">DSA this week</span>
             </div>
             <div className={statCardClass("walk", "today-week-walk")}>
               <PersonSimpleWalk size={16} className="today-week-icon mb-1" weight="bold" />
-              <b className="block font-mono text-xl">{briefing.stats.walk_days || 0}/7</b>
+              <b className="block font-mono text-xl">{weekCards.walkDays}/7</b>
               <span className="text-xs text-ctp-subtext1">Walk days</span>
             </div>
             <div className={statCardClass("study", "today-week-study")}>
