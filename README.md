@@ -84,7 +84,7 @@ The screenshot above is the three-pane notes desk in **Inkdrop Light**: notebook
   </tr>
 </table>
 
-The hero is **Inkdrop Light**. The gallery below still shows Catppuccin / Kanagawa shots of the other pages. Code-block themes are independent of the app theme.
+All of these shots are **Inkdrop Light**. Code-block themes are independent of the app theme.
 
 ---
 
