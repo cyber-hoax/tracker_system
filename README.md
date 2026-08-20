@@ -1,92 +1,94 @@
-# Daily Routine 🗓️
+# Daily Routine
 
-Local-first **SDE-2 / SDE-3** workspace: a daily coach, DSA Zettelkasten, reports, chat against your notes, and (on macOS) a native desktop window.
+Local-first **SDE-2 / SDE-3** workspace: today's study block, a DSA Zettelkasten, reports, and chat against your notes. On macOS it also opens as a desktop window.
 
 Runs **only on your machine**. Nothing here is a hosted SaaS.
 
 <p align="center">
-  <img src="docs/screenshots/today.png" alt="Today view — current study block, timeline, and week summary" width="920" />
+  <img src="docs/screenshots/inkdrop-light.png" alt="Daily Routine in the Inkdrop Light theme — notebooks rail, DSA note list, editor, and properties" width="920" />
 </p>
 
 <p align="center">
   <a href="https://github.com/cyber-hoax/tracker_system/fork">Fork it</a>
   ·
-  <a href="#-quick-start-web">Web</a>
+  <a href="#quick-start-web">Web</a>
   ·
-  <a href="#-quick-start-macos-app">macOS app</a>
+  <a href="#quick-start-macos-app">macOS app</a>
   ·
   <a href="http://127.0.0.1:8765">http://127.0.0.1:8765</a>
 </p>
 
-You can use **either**:
+Use either:
 
-- 🌐 **Web** — `npm run dev` then open the URL in a browser
-- 🍏 **macOS app** — `npm run app` opens **Daily Routine** in Electron (same server, same database)
+- **Web** — `npm run dev`, then open the URL in a browser
+- **macOS app** — `npm run app` opens **Daily Routine** in Electron (same server, same database)
 
-You do **not** create the Postgres database by hand. First `npm run dev` or `npm run app` creates `sde_tracker`, applies migrations, and seeds property definitions.
+You do **not** create the Postgres database by hand. The first `npm run dev` or `npm run app` creates `sde_tracker`, applies migrations, and seeds property definitions.
+
+The screenshot above is the three-pane notes desk in **Inkdrop Light**: notebooks on the left, the problem list in the middle, the markdown/code editor, and the properties rail.
 
 ---
 
-## ✨ Features
+## Features
 
 | | |
 | --- | --- |
-| 📥 **LeetCode → notes** | Username + session cookie. New submissions become files. Existing problems **append** (with tags), they are not overwritten. Polls **every hour**. |
-| 📊 **Reports** | Daily, weekly, monthly — plus heatmaps and a calendar. |
-| 📅 **Routines + Calendar** | Multiple routines. Push to Apple Calendar (`SDE Prep`). |
-| 📝 **Notes** | New problem, pattern, or free note whenever you need it. |
-| 🏷️ **Extra properties** | Text, number, date, select, multi-select, checkbox, wikilink. |
-| ♻️ **Trash snapshots** | Latest **10 deletes** can be restored from Settings. |
-| 🔗 **Obsidian sync** | Two-way markdown with the vault you already have. |
-| 🧠 **Chat on your files** | Local models, API models, or OmniRoute. `@note` and `/folder`. |
-| 🕸️ **Graph** | Problems, patterns, wikilinks — Obsidian-style. |
-| 🐘 **Postgres** | Notes, chat, routines, and snapshots persist. Created for you. |
-| ⚙️ **Settings** | App theme, markdown / code theme, sync, properties, LLM config. |
-| 🔍 **Fuzzy search** | Titles, bodies, folders, property filters. |
-| ↩️ **Backlinks** | Every note shows what points at it. |
+| **LeetCode → notes** | Username + session cookie. New submissions become files. Existing problems **append** (with tags), they are not overwritten. Polls **every hour**. |
+| **Reports** | Daily, weekly, monthly — plus heatmaps and a calendar. |
+| **Routines + Calendar** | Multiple routines. Push to Apple Calendar (`SDE Prep`). |
+| **Notes** | New problem, pattern, or free note whenever you need it. |
+| **Extra properties** | Text, number, date, select, multi-select, checkbox, wikilink. |
+| **Trash snapshots** | Latest **10 deletes** can be restored from Settings. |
+| **Obsidian sync** | Two-way markdown with the vault you already have. |
+| **Chat on your files** | Local models, API models, or OmniRoute. `@note` and `/folder`. |
+| **Graph** | Problems, patterns, wikilinks — Obsidian-style. |
+| **Postgres** | Notes, chat, routines, and snapshots persist. Created for you. |
+| **Settings** | App theme, markdown / code theme, sync, properties, LLM config. |
+| **Fuzzy search** | Titles, bodies, folders, property filters. |
+| **Backlinks** | Every note shows what points at it. |
 
 ---
 
-## 🖼 Screenshots
+## Screenshots
 
 <table>
   <tr>
     <td width="50%">
-      <p align="center"><strong>📝 DSA note</strong></p>
+      <p align="center"><strong>DSA note</strong></p>
       <img src="docs/screenshots/note.png" alt="DSA note with syntax-highlighted C++ solution" />
     </td>
     <td width="50%">
-      <p align="center"><strong>🧠 Chat on your notes</strong></p>
+      <p align="center"><strong>Chat on your notes</strong></p>
       <img src="docs/screenshots/chat.png" alt="Chat with OmniRoute, @notes and /folders" />
     </td>
   </tr>
   <tr>
     <td>
-      <p align="center"><strong>📊 Reports + heatmap</strong></p>
+      <p align="center"><strong>Reports + heatmap</strong></p>
       <img src="docs/screenshots/reports.png" alt="Reports calendar heatmap for questions and routines" />
     </td>
     <td>
-      <p align="center"><strong>🕸️ Zettelkasten graph</strong></p>
+      <p align="center"><strong>Zettelkasten graph</strong></p>
       <img src="docs/screenshots/graph.png" alt="Graph of problems, patterns, and wikilinks" />
     </td>
   </tr>
   <tr>
     <td>
-      <p align="center"><strong>🔍 Fuzzy search</strong></p>
+      <p align="center"><strong>Fuzzy search</strong></p>
       <img src="docs/screenshots/search.png" alt="Fuzzy search results with property facets" />
     </td>
     <td>
-      <p align="center"><strong>⚙️ Settings</strong></p>
+      <p align="center"><strong>Settings</strong></p>
       <img src="docs/screenshots/settings.png" alt="Appearance settings — app theme and code theme" />
     </td>
   </tr>
 </table>
 
-Themes include Catppuccin and Kanagawa. Code-block themes are independent of the app theme.
+The hero is **Inkdrop Light**. The gallery below still shows Catppuccin / Kanagawa shots of the other pages. Code-block themes are independent of the app theme.
 
 ---
 
-## ✅ Requirements
+## Requirements
 
 | Tool | Why |
 | --- | --- |
@@ -99,7 +101,7 @@ You do **not** need API keys to try the tracker. Chat, LeetCode ingest, and Obsi
 
 ---
 
-## 🔐 Secrets
+## Secrets
 
 This repo is public. **Never commit real keys.**
 
@@ -121,7 +123,7 @@ LLM keys you paste in **Settings → Models** live outside the repo:
 
 ---
 
-## 🌐 Quick start (web)
+## Quick start (web)
 
 Postgres must be reachable on `127.0.0.1:5432`. If you do not already run Postgres, use Docker:
 
@@ -154,7 +156,7 @@ If something else owns `5432`, stop it or point `DATABASE_URL` in `.env.local` a
 
 ---
 
-## 🍏 Quick start (macOS app)
+## Quick start (macOS app)
 
 Same clone and same database as the web UI:
 
@@ -185,12 +187,12 @@ Stop `npm run dev` before packing; both use the `.next` folder.
 
 ---
 
-## 🛠 Optional configuration
+## Optional configuration
 
 After first run you will have `.env.local`. Add only what you use:
 
 | Variable | Required to try the app? | Purpose |
-| --- | --- | --- |
+| --- | --- |
 | `DATABASE_URL` | Written automatically | Postgres URL for `sde_tracker` |
 | `OBSIDIAN_VAULT` | No | Absolute path to an Obsidian vault |
 | `OBSIDIAN_TRACKER_DIR` | No | Vault-relative folder for problem notes (default `Notion/tracker`) |
@@ -204,13 +206,13 @@ Timezone and the study plan come from [`config.yaml`](config.yaml) and [`data/ro
 
 All optional.
 
-- 🔗 **Obsidian** — set `OBSIDIAN_VAULT`; saving a note writes markdown. Pull vault edits from Settings or `npm run obsidian:import`.
-- 📅 **Apple Calendar** — on Today, **Sync to Apple Calendar** creates calendar **SDE Prep** (macOS permission prompt).
-- 📥 **LeetCode** — username + session cookie; sync from Settings. Never commit the cookie.
+- **Obsidian** — set `OBSIDIAN_VAULT`; saving a note writes markdown. Pull vault edits from Settings or `npm run obsidian:import`.
+- **Apple Calendar** — on Today, **Sync to Apple Calendar** creates calendar **SDE Prep** (macOS permission prompt).
+- **LeetCode** — username + session cookie; sync from Settings. Never commit the cookie.
 
 ---
 
-## 🗺 Pages
+## Pages
 
 | Path | Feature |
 | --- | --- |
@@ -225,7 +227,7 @@ All optional.
 
 ---
 
-## 📟 Commands
+## Commands
 
 | Command | What it does |
 | --- | --- |
@@ -242,7 +244,7 @@ All optional.
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
 The default branch is **`main`**. It is **protected**:
 
@@ -262,7 +264,7 @@ Happy to take feedback or feature requests.
 
 ---
 
-## 🩺 Troubleshooting
+## Troubleshooting
 
 **`Could not reach Postgres`**  
 Start Docker (`docker compose up -d`) or your local Postgres, then `npm run setup`.
@@ -278,6 +280,6 @@ Add a provider in Settings (Ollama, OmniRoute, etc.). Keys stay on disk, not in 
 
 ---
 
-## 📄 License
+## License
 
 Private-use / source-available unless a `LICENSE` file is added later. Ask before you republish the routine content as your own product.
