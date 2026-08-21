@@ -14,8 +14,6 @@ Runs **only on your machine**. Nothing here is a hosted SaaS.
   <a href="#quick-start-web">Web</a>
   ·
   <a href="#quick-start-macos-app">macOS app</a>
-  ·
-  <a href="http://127.0.0.1:8765">http://127.0.0.1:8765</a>
 </p>
 
 Use either:
@@ -192,7 +190,7 @@ Stop `npm run dev` before packing; both use the `.next` folder.
 After first run you will have `.env.local`. Add only what you use:
 
 | Variable | Required to try the app? | Purpose |
-| --- | --- |
+| --- | --- | --- |
 | `DATABASE_URL` | Written automatically | Postgres URL for `sde_tracker` |
 | `OBSIDIAN_VAULT` | No | Absolute path to an Obsidian vault |
 | `OBSIDIAN_TRACKER_DIR` | No | Vault-relative folder for problem notes (default `Notion/tracker`) |
